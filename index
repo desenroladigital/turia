@@ -1,0 +1,2325 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurIA — Cérebro Central · Desenrola Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@500;600;700&family=Nunito:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --tinta:#173D63;         /* azul profundo Desenrola — chrome */
+  --tinta-2:#1E4E7E;
+  --papel:#F4F7FA;         /* claro Desenrola — área de trabalho */
+  --branco:#FFFFFF;
+  --lagoa:#2C6AA3;         /* Azul Desenrola — acento primário (white-label) */
+  --sol:#A4B56E;           /* Verde Adventure — nível Reforço */
+  --coral:#D95744;         /* perigo */
+  --nevoa:#D7E1EA;         /* bordas */
+  --grafite:#3B4E63;       /* texto secundário */
+  --ink:#16283C;           /* texto principal */
+  --raio:12px;
+  --fonte-d:'Anton',sans-serif;
+  --fonte-t:'Nunito',system-ui,sans-serif;
+  --fonte-h:'Montserrat',sans-serif;
+  --fonte-m:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--fonte-t);background:var(--papel);color:var(--ink);font-size:15px;line-height:1.55;display:flex;flex-direction:column;min-height:100vh}
+:focus-visible{outline:2px solid var(--lagoa);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ── Painel de embarque (topo) ── */
+.topo{background:var(--tinta);color:#EAF2F0;display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap;position:sticky;top:0;z-index:40;border-bottom:3px solid var(--sol)}
+.marca{display:flex;align-items:center;gap:10px;min-width:0}
+.marca .logo{font-size:22px;line-height:1}
+.marca .nome{font-family:var(--fonte-d);font-weight:400;font-size:22px;letter-spacing:1.2px;white-space:nowrap}
+.marca .sub{font-family:var(--fonte-m);font-size:10px;opacity:.65;letter-spacing:.14em;text-transform:uppercase;display:block;margin-top:-3px}
+.abas{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.abas::-webkit-scrollbar{display:none}
+.aba{background:transparent;border:1px solid transparent;color:#C5D6EA;font-family:var(--fonte-h);font-weight:600;font-size:13.5px;padding:8px 14px;border-radius:9px;cursor:pointer;white-space:nowrap;display:flex;flex-direction:column;align-items:flex-start;gap:1px;transition:background .15s}
+.aba .porta{font-family:var(--fonte-m);font-size:9px;letter-spacing:.16em;opacity:.55;text-transform:uppercase}
+.aba:hover{background:rgba(255,255,255,.07)}
+.aba.ativa{background:var(--lagoa);color:#fff;border-color:color-mix(in srgb,var(--lagoa),#fff 25%)}
+.aba.ativa .porta{opacity:.8}
+.aba .selo{background:var(--sol);color:#243109;font-family:var(--fonte-m);font-size:10px;font-weight:600;border-radius:20px;padding:0 6px;margin-left:6px}
+.status-voo{margin-left:auto;background:var(--tinta-2);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:6px 12px;cursor:pointer;text-align:right;color:#EAF2F0}
+.status-voo .lin1{font-family:var(--fonte-m);font-size:11px;color:#9CC7EE;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status-voo .lin2{font-family:var(--fonte-m);font-size:10.5px;opacity:.7}
+
+.banner-aviso{background:#FFF4DC;border-bottom:1px solid #EAD9AE;color:#5C4914;font-size:13px;padding:7px 18px;display:none}
+.banner-aviso.on{display:block}
+
+/* ── Estrutura das páginas ── */
+main{flex:1;width:100%;display:none}
+main.on{display:block}
+.miolo{max-width:1120px;margin:0 auto;padding:22px 18px 60px}
+h2.titulo-pg{font-family:var(--fonte-d);font-weight:400;font-size:30px;letter-spacing:.5px;margin-bottom:4px}
+.sub-pg{color:var(--grafite);font-size:14px;margin-bottom:20px}
+.cartao{background:var(--branco);border:1px solid var(--nevoa);border-radius:var(--raio);padding:18px;margin-bottom:16px}
+.cartao h3{font-family:var(--fonte-h);font-weight:700;font-size:15.5px;letter-spacing:.2px;margin-bottom:4px}
+.cartao .dica{color:var(--grafite);font-size:13px;margin-bottom:12px}
+.grade-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.grade-2{grid-template-columns:1fr}}
+
+label{display:block;font-family:var(--fonte-h);font-weight:600;font-size:12.5px;margin:10px 0 4px;color:var(--ink)}
+input[type=text],input[type=password],input[type=number],input[type=url],select,textarea{width:100%;border:1px solid var(--nevoa);border-radius:9px;padding:9px 11px;font-family:var(--fonte-t);font-size:14px;background:#fff;color:var(--ink)}
+textarea{resize:vertical;min-height:90px;line-height:1.5}
+textarea.mono,input.mono,select.mono{font-family:var(--fonte-m);font-size:12.5px}
+input:focus,select:focus,textarea:focus{border-color:var(--lagoa)}
+.linha{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.linha>*{flex:1;min-width:120px}
+.linha .fixo{flex:0 0 auto;min-width:0}
+
+.btn{background:var(--lagoa);color:#fff;border:none;border-radius:9px;padding:9px 16px;font-family:var(--fonte-h);font-weight:600;font-size:14px;cursor:pointer;transition:filter .12s}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.fantasma{background:#fff;color:var(--ink);border:1px solid var(--nevoa)}
+.btn.fantasma:hover{border-color:var(--lagoa);color:var(--lagoa)}
+.btn.perigo{background:var(--coral)}
+.btn.sol{background:var(--sol);color:#243109}
+.btn.mini{padding:5px 10px;font-size:12.5px;border-radius:7px}
+
+.pill{display:inline-block;font-family:var(--fonte-m);font-size:10.5px;letter-spacing:.05em;border-radius:20px;padding:2px 9px;border:1px solid var(--nevoa);color:var(--grafite);background:#fff}
+.pill.base{border-color:#BFE3DD;color:var(--lagoa);background:#EDF7F5}
+.pill.reforco{border-color:#C7D3A2;color:#57682B;background:#F2F6E7}
+.pill.pend{border-color:#F2C4B8;color:#A03A28;background:#FDEFEB}
+
+/* ── Chat ── */
+.chat-wrap{display:grid;grid-template-columns:280px 1fr;gap:0;height:calc(100vh - 62px)}
+.chat-lado{background:#EFF3F2;border-right:1px solid var(--nevoa);padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.chat-lado h4{font-family:var(--fonte-m);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--grafite)}
+.ag-desc{font-size:12.5px;color:var(--grafite);line-height:1.45}
+.chat-corpo{display:flex;flex-direction:column;min-width:0}
+.chat-msgs{flex:1;overflow-y:auto;padding:22px 22px 10px;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:78%;padding:11px 14px;border-radius:14px;white-space:pre-wrap;word-wrap:break-word;font-size:14.5px}
+.msg.u{align-self:flex-end;background:var(--tinta);color:#EAF2F0;border-bottom-right-radius:4px}
+.msg.a{align-self:flex-start;background:#fff;border:1px solid var(--nevoa);border-bottom-left-radius:4px}
+.msg.a.erro{border-color:#F2C4B8;background:#FDF1EE;color:#7C2D1E}
+.carimbo{align-self:flex-start;font-family:var(--fonte-m);font-size:10.5px;color:var(--grafite);border:1px dashed var(--nevoa);border-radius:7px;padding:3px 8px;margin-top:-8px;background:var(--papel)}
+.carimbo .rf{color:#57682B}
+.chat-vazio{margin:auto;text-align:center;color:var(--grafite);max-width:420px;padding:20px}
+.chat-vazio .icone{font-size:40px;margin-bottom:10px}
+.chat-vazio b{color:var(--ink)}
+.compor{display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--nevoa);background:#fff}
+.compor textarea{flex:1;min-height:46px;max-height:150px}
+.digitando{font-family:var(--fonte-m);font-size:11px;color:var(--grafite);padding:0 24px 8px;display:none}
+.digitando.on{display:block}
+@media(max-width:900px){
+  .chat-wrap{grid-template-columns:1fr;height:auto;min-height:calc(100vh - 62px)}
+  .chat-lado{border-right:none;border-bottom:1px solid var(--nevoa);flex-direction:row;flex-wrap:wrap;align-items:flex-end}
+  .chat-lado>div{flex:1;min-width:150px}
+  .chat-msgs{min-height:50vh}
+  .msg{max-width:92%}
+}
+
+/* ── Cards de agentes / registros ── */
+.lista-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.card-ag{background:#fff;border:1px solid var(--nevoa);border-radius:var(--raio);padding:14px;cursor:pointer;transition:border-color .12s}
+.card-ag:hover{border-color:var(--lagoa)}
+.card-ag.sel{border-color:var(--lagoa);box-shadow:0 0 0 2px color-mix(in srgb,var(--lagoa),transparent 75%)}
+.card-ag .nm{font-family:var(--fonte-h);font-weight:700;font-size:14.5px;margin-bottom:2px}
+.card-ag .pp{font-size:12.5px;color:var(--grafite);min-height:34px}
+.card-ag .rodape{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+
+.reg{background:#fff;border:1px solid var(--nevoa);border-radius:var(--raio);padding:13px 15px;margin-bottom:10px}
+.reg .cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.reg .tt{font-weight:600;font-size:14.5px;flex:1;min-width:150px}
+.reg .tx{color:var(--grafite);font-size:13px;margin-top:5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.reg.pendente{border-left:4px solid var(--sol)}
+
+/* ── Catálogo de modelos ── */
+.cat-tabela{width:100%;border-collapse:collapse;font-size:13px}
+.cat-tabela th{font-family:var(--fonte-m);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--grafite);text-align:left;padding:6px 6px;border-bottom:1px solid var(--nevoa)}
+.cat-tabela td{padding:5px 4px;border-bottom:1px solid #EEF2F1;vertical-align:middle}
+.cat-tabela input,.cat-tabela select{padding:6px 8px;font-size:12.5px}
+.cat-envelope{overflow-x:auto}
+.cat-tabela{min-width:680px}
+
+/* ── Modais / toasts ── */
+.veu{position:fixed;inset:0;background:rgba(10,25,32,.5);display:none;align-items:center;justify-content:center;z-index:80;padding:18px}
+.veu.on{display:flex}
+.modal{background:#fff;border-radius:14px;padding:22px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto}
+.modal h3{font-family:var(--fonte-h);font-weight:700;font-size:17px;margin-bottom:6px}
+.modal .acoes{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+#toasts{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:99;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:var(--tinta);color:#EAF2F0;border-radius:10px;padding:10px 16px;font-size:13.5px;max-width:min(520px,90vw);box-shadow:0 6px 18px rgba(0,0,0,.25);border-left:4px solid var(--lagoa)}
+.toast.erro{border-left-color:var(--coral)}
+.toast.sol{border-left-color:var(--sol)}
+
+.rodape-app{font-family:var(--fonte-m);font-size:10.5px;color:var(--grafite);text-align:center;padding:14px;border-top:1px solid var(--nevoa)}
+.medidor{font-family:var(--fonte-m);font-size:11px;color:var(--grafite)}
+.medidor.alerta{color:#57682B}.medidor.critico{color:var(--coral)}
+.aviso-inline{background:#F3F7F6;border:1px dashed var(--nevoa);border-radius:9px;padding:10px 12px;font-size:12.5px;color:var(--grafite);margin-top:10px}
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <div class="marca">
+    <span class="logo" id="brandLogo">🧠</span>
+    <span><span class="nome" id="brandNome">TurIA</span><span class="sub" id="brandEmpresa">plataforma de ia · turismo</span></span>
+  </div>
+  <nav class="abas" id="abas">
+    <button class="aba ativa" data-pg="chat"><span class="porta">portão 01</span>Atendimento</button>
+    <button class="aba" data-pg="matriz"><span class="porta">portão 02</span>Prompt Matriz</button>
+    <button class="aba" data-pg="kb"><span class="porta">portão 03</span>Conhecimento<span class="selo" id="seloPend" style="display:none">0</span></button>
+    <button class="aba" data-pg="modelos"><span class="porta">portão 04</span>Modelos</button>
+    <button class="aba" data-pg="cerebro"><span class="porta">portão 05</span>Cérebro<span class="selo" id="seloProp" style="display:none">0</span></button>
+  </nav>
+  <button class="status-voo" id="statusVoo" title="Abrir Modelos">
+    <div class="lin1" id="statusModelo">—</div>
+    <div class="lin2" id="statusCusto">custo do mês: —</div>
+  </button>
+</header>
+
+<div class="banner-aviso" id="bannerAviso"></div>
+
+<!-- ═══ PORTÃO 01 · ATENDIMENTO ═══ -->
+<main id="pg-chat" class="on">
+  <div class="chat-wrap">
+    <aside class="chat-lado">
+      <div>
+        <h4>Sistema</h4>
+        <select id="selSistema">
+          <option value="todos">Todos os sistemas</option>
+          <option value="gestao">Gestão</option>
+          <option value="guid">GuiD</option>
+          <option value="marketing">Marketing</option>
+          <option value="console">Console (meta)</option>
+        </select>
+      </div>
+      <div>
+        <h4>Agente</h4>
+        <select id="selAgente"></select>
+        <p class="ag-desc" id="agDesc"></p>
+      </div>
+      <div>
+        <h4>Conversa</h4>
+        <select id="selConversa"></select>
+        <div class="linha" style="margin-top:8px">
+          <button class="btn mini fixo" id="btnNovaConv">Nova</button>
+          <button class="btn mini fantasma fixo" id="btnExcluirConv">Excluir</button>
+        </div>
+      </div>
+      <div>
+        <h4>Inteligência</h4>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:500;margin-top:6px"><input type="checkbox" id="chkRag" checked style="width:auto"> Usar Base de Conhecimento</label>
+        <button class="btn mini sol" id="btnAprender" style="margin-top:10px">💡 Extrair aprendizados</button>
+        <p class="ag-desc" style="margin-top:6px">Gera novos registros de conhecimento a partir desta conversa, para sua aprovação.</p>
+      </div>
+    </aside>
+    <section class="chat-corpo">
+      <div class="chat-msgs" id="chatMsgs">
+        <div class="chat-vazio" id="chatVazio">
+          <div class="icone">🛫</div>
+          <p><b>Escolha um agente e comece a conversar.</b></p>
+          <p style="margin-top:6px;font-size:13px">Cada resposta chega com um carimbo de embarque: modelo usado, tokens e custo. Agentes <span class="pill reforco">Reforço</span> usam o modelo forte e pedem senha.</p>
+        </div>
+      </div>
+      <div class="digitando" id="digitando">gerando resposta…</div>
+      <div class="compor">
+        <textarea id="inpMsg" placeholder="Escreva a mensagem… (Enter envia · Shift+Enter quebra linha)"></textarea>
+        <button class="btn fixo" id="btnEnviar" style="align-self:flex-end">Enviar</button>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- ═══ PORTÃO 02 · PROMPT MATRIZ ═══ -->
+<main id="pg-matriz">
+  <div class="miolo">
+    <h2 class="titulo-pg">Prompt Matriz</h2>
+    <p class="sub-pg">A alma de cada agente: personalidade, regras e missão. Editável em tempo real — a próxima mensagem já usa a nova versão.</p>
+    <div class="cartao">
+      <div class="linha" style="justify-content:space-between">
+        <h3 style="margin:0">Agentes</h3>
+        <button class="btn mini fixo" id="btnNovoAg">+ Novo agente</button>
+      </div>
+      <div class="lista-cards" id="listaAgentes" style="margin-top:12px"></div>
+    </div>
+    <div class="cartao" id="edPainel" style="display:none">
+      <h3 id="edAgTitulo">Editar agente</h3>
+      <div class="grade-2">
+        <div>
+          <label>Nome do agente</label>
+          <input type="text" id="edAgNome">
+          <label>Papel (resumo em uma linha)</label>
+          <input type="text" id="edAgPapel">
+          <div class="linha">
+            <div><label>Nível de modelo</label>
+              <select id="edAgTier"><option value="base">Base — rápido e barato</option><option value="reforco">Reforço — forte (pede senha)</option></select>
+            </div>
+            <div><label>Temperatura</label><input type="number" id="edAgTemp" step="0.1" min="0" max="1.5"></div>
+          </div>
+          <div class="linha">
+            <div><label>Sistema</label>
+              <select id="edAgSis"><option value="gestao">Gestão</option><option value="guid">GuiD</option><option value="marketing">Marketing</option><option value="console">Console (meta)</option></select>
+            </div>
+            <div><label>Público</label>
+              <select id="edAgPub"><option value="cliente">Cliente</option><option value="interno">Interno</option><option value="meta">Meta (observação)</option></select>
+            </div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:12px"><input type="checkbox" id="edAgRag" style="width:auto"> Usa a Base de Conhecimento (RAG)</label>
+          <label>Histórico de versões</label>
+          <div class="linha">
+            <select id="selVersoes" class="mono"></select>
+            <button class="btn mini fantasma fixo" id="btnRestaurar">Restaurar</button>
+          </div>
+        </div>
+        <div>
+          <label>Prompt Matriz</label>
+          <textarea id="edAgPrompt" style="min-height:260px"></textarea>
+        </div>
+      </div>
+      <div class="linha" style="justify-content:flex-end;margin-top:14px">
+        <button class="btn perigo mini fixo" id="btnExcluirAg">Excluir agente</button>
+        <button class="btn fixo" id="btnSalvarAg">Salvar alterações</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══ PORTÃO 03 · CONHECIMENTO ═══ -->
+<main id="pg-kb">
+  <div class="miolo">
+    <h2 class="titulo-pg">Base de Conhecimento</h2>
+    <p class="sub-pg">O que a IA sabe. Os agentes buscam aqui antes de responder — a resposta nasce do seu conteúdo curado, não de suposição.</p>
+    <div class="cartao" id="cardPend" style="display:none">
+      <h3>Aprendizados aguardando sua aprovação</h3>
+      <p class="dica">Extraídos das conversas. Aprovar transforma em registro oficial da base.</p>
+      <div id="kbPend"></div>
+    </div>
+    <div class="cartao">
+      <div class="linha">
+        <input type="text" id="kbBusca" placeholder="Buscar por título, tag ou conteúdo…">
+        <button class="btn fixo" id="btnKbNovo">+ Novo registro</button>
+        <button class="btn fantasma fixo" id="btnKbImport">Importar JSON</button>
+        <button class="btn fantasma fixo" id="btnKbExport">Exportar</button>
+        <button class="btn fantasma fixo" id="btnKbIndexar" title="Gera vetores semânticos via modelo de embeddings">Indexar semântica</button>
+      </div>
+      <div class="linha" style="margin-top:8px;justify-content:space-between">
+        <span class="medidor" id="kbMedidor">0 registros</span>
+        <label class="fixo" style="display:flex;align-items:center;gap:6px;font-weight:500;font-size:12.5px;margin:0"><input type="checkbox" id="kbChkCompact" checked style="width:auto"> Importar compactado (conteúdo até 2.000 caracteres)</label>
+      </div>
+      <input type="file" id="fileKbImport" accept=".json,application/json" style="display:none">
+      <div id="kbLista" style="margin-top:14px"></div>
+    </div>
+  </div>
+</main>
+
+<!-- ═══ PORTÃO 04 · MODELOS ═══ -->
+<main id="pg-modelos">
+  <div class="miolo">
+    <h2 class="titulo-pg">Modelos & Operação</h2>
+    <p class="sub-pg">Dois níveis, um cockpit: <span class="pill base">Base</span> para volume barato e <span class="pill reforco">Reforço</span> para o trabalho pesado — protegido por senha.</p>
+
+    <div class="cartao" style="border-left:4px solid var(--lagoa)">
+      <h3>🧠 Cérebro (Gateway iaCentral) — teste isolado</h3>
+      <p class="dica">Liga o chat direto na função <span class="pill">iaCentral</span> da ponte: Prompt Matriz, base de conhecimento e roteamento rodam no SERVIDOR (namespace ia/). Sistema e GuiD ficam intocados.</p>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600"><input type="checkbox" id="chkGateway" style="width:auto"> Usar o cérebro em todas as conversas</label>
+      <div class="linha" style="margin-top:10px">
+        <div><label>URL da função</label><input type="url" id="gwUrl" class="mono" placeholder="https://us-central1-desenrola-sistema-a7a56.cloudfunctions.net/iaCentral"></div>
+        <div><label>Token do sistema "console"</label><input type="password" id="gwToken" class="mono" placeholder="tia_console_… (exibido pelo _seed_ia.js)"></div>
+      </div>
+      <div class="linha" style="margin-top:12px"><button class="btn mini fixo" id="btnGwTeste">Testar cérebro</button></div>
+      <div class="aviso-inline">No modo cérebro, as páginas locais (Matriz/Conhecimento) NÃO são enviadas — valem as do servidor. Desligue o modo para voltar às conexões diretas.</div>
+    </div>
+
+    <div class="grade-2">
+      <div class="cartao">
+        <h3>Conexão · Provedor aberto (OpenAI-compatível)</h3>
+        <p class="dica">DeepInfra, OpenRouter, Together, Groq… basta a URL base e a chave.</p>
+        <label>URL base</label>
+        <input type="url" id="oaBase" class="mono" placeholder="https://api.deepinfra.com/v1/openai">
+        <label>Chave de API</label>
+        <input type="password" id="oaKey" class="mono" placeholder="dep_…">
+        <div class="linha" style="margin-top:12px"><button class="btn mini fixo" id="btnOaTeste">Testar conexão</button></div>
+      </div>
+      <div class="cartao">
+        <h3>Conexão · Anthropic (opcional, premium)</h3>
+        <p class="dica">Camada extra para casos extremos. Na pré-visualização do Claude funciona sem chave (demonstração).</p>
+        <label>Chave de API</label>
+        <input type="password" id="anKey" class="mono" placeholder="sk-ant-…">
+        <div class="linha" style="margin-top:12px"><button class="btn mini fixo" id="btnAnTeste">Testar conexão</button></div>
+      </div>
+    </div>
+
+    <div class="cartao">
+      <h3>Modelos ativos</h3>
+      <div class="linha">
+        <div><label>Modelo Base</label><select id="selModBase" class="mono"></select></div>
+        <div><label>Modelo Reforço</label><select id="selModReforco" class="mono"></select></div>
+        <div><label>Modelo de embeddings (busca semântica)</label><input type="text" id="inpModEmbed" class="mono" placeholder="BAAI/bge-m3"></div>
+      </div>
+      <div class="aviso-inline">Os IDs precisam existir no catálogo do seu provedor — confira na página de modelos dele e ajuste abaixo. Trocar de modelo é imediato: a próxima mensagem já usa o novo.</div>
+    </div>
+
+    <div class="cartao">
+      <h3>Catálogo de modelos</h3>
+      <p class="dica">Preços em US$ por milhão de tokens (entrada/saída) — estimativas editáveis, usadas no carimbo de custo.</p>
+      <div class="cat-envelope"><table class="cat-tabela"><thead><tr><th>Apelido</th><th>ID no provedor</th><th>Provedor</th><th>Nível</th><th>US$ entrada</th><th>US$ saída</th><th></th></tr></thead><tbody id="catLista"></tbody></table></div>
+      <div class="linha" style="margin-top:12px">
+        <button class="btn mini fantasma fixo" id="btnCatAdd">+ Adicionar modelo</button>
+        <button class="btn mini fixo" id="btnCatSalvar">Salvar catálogo</button>
+      </div>
+    </div>
+
+    <div class="grade-2">
+      <div class="cartao">
+        <h3>Segurança do Reforço</h3>
+        <p class="dica">Agentes de nível Reforço pedem esta senha antes de usar o modelo forte — controle de custo na sua mão.</p>
+        <button class="btn sol mini" id="btnDefSenha">Definir / trocar senha</button>
+        <p class="dica" id="senhaEstado" style="margin-top:10px"></p>
+      </div>
+      <div class="cartao">
+        <h3>Custos do mês</h3>
+        <div class="linha">
+          <div><label>Câmbio US$ → R$</label><input type="number" id="inpCambio" step="0.01" min="1"></div>
+          <div style="align-self:flex-end"><button class="btn mini fantasma" id="btnZerarUso">Zerar contadores</button></div>
+        </div>
+        <p style="font-family:var(--fonte-m);font-size:15px;margin-top:12px" id="custoTotal">—</p>
+        <div id="custoLista" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <div class="grade-2">
+      <div class="cartao">
+        <h3>Identidade (white-label)</h3>
+        <p class="dica">Cada instalação é uma marca: renomeie, troque a cor e o símbolo. Pronto para multi-empresa.</p>
+        <div class="linha">
+          <div><label>Nome do produto</label><input type="text" id="wlProduto"></div>
+          <div><label>Símbolo (emoji)</label><input type="text" id="wlLogo" maxlength="4"></div>
+        </div>
+        <div class="linha">
+          <div><label>Nome da empresa (tenant)</label><input type="text" id="wlEmpresa"></div>
+          <div><label>Cor primária</label><input type="text" id="wlCor" class="mono" placeholder="#2C6AA3"></div>
+        </div>
+        <div class="linha" style="margin-top:12px"><button class="btn mini fixo" id="btnWlSalvar">Aplicar identidade</button></div>
+      </div>
+      <div class="cartao">
+        <h3>Backup & restauração</h3>
+        <p class="dica">Exporta tudo: agentes, conhecimento, catálogo, uso e configurações.</p>
+        <label style="display:flex;align-items:center;gap:8px;font-weight:500"><input type="checkbox" id="chkIncKeys" style="width:auto"> Incluir chaves de API no arquivo</label>
+        <div class="linha" style="margin-top:12px">
+          <button class="btn mini fixo" id="btnBackup">Exportar backup</button>
+          <button class="btn mini fantasma fixo" id="btnRestore">Restaurar backup</button>
+        </div>
+        <input type="file" id="fileRestore" accept=".json,application/json" style="display:none">
+        <p class="dica" style="margin-top:12px" id="sobreApp"></p>
+      </div>
+    </div>
+  </div>
+</main>
+
+
+<!-- ═══ PORTÃO 05 · CÉREBRO (conecta ao desenrola-turia) ═══ -->
+<main id="pg-cerebro">
+  <div class="miolo">
+    <h2 class="titulo-pg">Cérebro</h2>
+    <p class="sub-pg">O painel de dono do <span class="pill">desenrola-turia</span>: provedores, roteamento por tarefa, propostas de troca e a memória (KOS). Conecta direto no Firebase do cérebro.</p>
+
+    <div class="cartao" id="cbConexaoCard" style="border-left:4px solid var(--lagoa)">
+      <h3>Conexão com o Firebase do cérebro</h3>
+      <p class="dica">Cole aqui o <b>firebaseConfig</b> do projeto <span class="pill">desenrola-turia</span> (Configurações do projeto → Seus apps → Web). A apiKey Web é pública por design.</p>
+      <textarea id="cbConfig" class="mono" style="min-height:150px" placeholder='{ "apiKey": "...", "authDomain": "desenrola-turia.firebaseapp.com", "databaseURL": "https://desenrola-turia-default-rtdb.firebaseio.com", "projectId": "desenrola-turia", ... }'></textarea>
+      <div class="linha" style="margin-top:10px">
+        <div><label>E-mail do gestor</label><input type="text" id="cbEmail" class="mono" placeholder="voce@dominio.com" autocomplete="username"></div>
+        <div><label>Senha</label><input type="password" id="cbSenha" class="mono" autocomplete="current-password"></div>
+      </div>
+      <div class="linha" style="margin-top:10px">
+        <button class="btn fixo" id="cbConectar">Entrar e conectar</button>
+        <span class="medidor" id="cbStatus">desconectado</span>
+      </div>
+      <div class="aviso-inline">Enquanto o banco estiver em modo bloqueado, a leitura/escrita do Console exige a regra de acesso do gestor. Se a conexão falhar por permissão, publique as regras de acesso do Console (te passo depois) — nada aqui interfere no cérebro em si.</div>
+    </div>
+
+    <div id="cbConectadoArea" style="display:none">
+      <!-- Provedores -->
+      <div class="cartao">
+        <div class="linha" style="justify-content:space-between"><h3 style="margin:0">Provedores</h3><button class="btn mini fixo" id="cbProvAdd">+ Provedor</button></div>
+        <p class="dica">Cadastre/edite os servidores de IA. <b>oa</b> = OpenAI-compatível (a maioria). As chaves ficam no cofre (segredo), não aqui.</p>
+        <div class="cat-envelope"><table class="cat-tabela" style="min-width:560px"><thead><tr><th>Apelido</th><th>Tipo</th><th>URL base</th><th></th></tr></thead><tbody id="cbProvLista"></tbody></table></div>
+      </div>
+
+      <!-- Roteamento -->
+      <div class="cartao">
+        <h3>Roteamento por tarefa (multiservidor)</h3>
+        <p class="dica">A ordem manda: o cérebro tenta o 1º e cai para o próximo (failover). Formato <span class="pill">apelido:modelo</span>, um por linha. Salvar já vale na próxima resposta — sem deploy.</p>
+        <div class="grade-2">
+          <div><label>Nível BASE (volume, barato/grátis)</label><textarea id="cbRotaBase" class="mono" style="min-height:110px"></textarea></div>
+          <div><label>Nível REFORÇO (tarefas complexas)</label><textarea id="cbRotaReforco" class="mono" style="min-height:110px"></textarea></div>
+        </div>
+        <div class="linha" style="margin-top:10px;justify-content:flex-end"><button class="btn fixo" id="cbRotaSalvar">Salvar roteamento</button></div>
+      </div>
+
+      <!-- Cérebro consciente: propostas -->
+      <div class="cartao">
+        <div class="linha" style="justify-content:space-between"><h3 style="margin:0">Cérebro consciente · propostas de troca</h3><button class="btn mini sol fixo" id="cbAnalisar">Analisar telemetria</button></div>
+        <p class="dica">Lê o uso real (custo, latência, erro) e <b>propõe</b> trocas de modelo por tarefa. Nada muda sozinho — você aprova.</p>
+        <div id="cbStats" class="medidor" style="margin:8px 0"></div>
+        <div id="cbPropostas"></div>
+      </div>
+
+      <!-- KOS / memória -->
+      <div class="cartao" id="cbKosCard">
+        <h3>Memória & Conhecimento (porta do KOS)</h3>
+        <p class="dica">A base que os agentes consultam. O <b>KOS</b> entra por aqui: importe o JSON exportado dele para alimentar a memória global do cérebro. Nada é removido da origem — só copiado.</p>
+        <div class="linha">
+          <span class="medidor" id="cbKbMed">—</span>
+          <button class="btn fantasma fixo" id="cbKosImport">Importar conhecimento (KOS/JSON)</button>
+          <input type="file" id="cbKosFile" accept=".json,application/json" style="display:none">
+        </div>
+        <div class="aviso-inline">Formato aceito: array de registros ou <span class="pill">{ registros: [...] }</span>, com campos como titulo/conteudo/categoria/tags. Quando o KOS estiver pronto, é só apontar o export dele aqui.</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="rodape-app" id="rodapeApp">TurIA v3.0.0 · cérebro central de IA · Desenrola Digital</footer>
+
+<!-- Modais -->
+<div class="veu" id="mSenha">
+  <div class="modal">
+    <h3 id="mSenhaTitulo">Senha do Reforço</h3>
+    <p class="dica" id="mSenhaMsg">Este agente usa o modelo forte. Informe a senha para liberar nesta sessão.</p>
+    <label>Senha</label>
+    <input type="password" id="inpSenha">
+    <div id="blocoConfirma" style="display:none">
+      <label>Confirmar senha</label>
+      <input type="password" id="inpSenha2">
+    </div>
+    <div class="acoes">
+      <button class="btn fantasma" id="btnSenhaCancel">Cancelar</button>
+      <button class="btn" id="btnSenhaOk">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="veu" id="mReg">
+  <div class="modal">
+    <h3 id="mRegHead">Registro de conhecimento</h3>
+    <label>Título</label><input type="text" id="mRegTitulo">
+    <div class="linha">
+      <div><label>Categoria</label><input type="text" id="mRegCat" placeholder="Ex.: Lightning Lane"></div>
+      <div><label>Tags (separadas por vírgula)</label><input type="text" id="mRegTags"></div>
+    </div>
+    <label>Conteúdo</label>
+    <textarea id="mRegConteudo" style="min-height:180px"></textarea>
+    <div class="acoes">
+      <button class="btn fantasma" id="btnRegCancelar">Cancelar</button>
+      <button class="btn" id="btnRegSalvar">Salvar registro</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* ═════════════════════════════════════════════════════════════
+   TurIA v3.0.0 — Cérebro Central de IA · Desenrola Digital
+   Biblioteca de Inteligência · arquivo único · GitHub Pages
+   ═════════════════════════════════════════════════════════════ */
+const VERSAO = '3.0.0';
+
+/* ── Utilitários ── */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const agora = () => new Date().toISOString();
+const fmtUSD = v => 'US$ ' + (v || 0).toFixed(4);
+const estTokens = txt => Math.max(1, Math.ceil(String(txt || '').length / 3.6));
+function debounce(fn, ms) {
+  let tId;
+  return function () { const a = arguments; clearTimeout(tId); tId = setTimeout(() => fn.apply(null, a), ms); };
+}
+function toast(msg, tipo) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (tipo ? ' ' + tipo : '');
+  t.textContent = msg;
+  $('toasts').appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .4s'; }, 3800);
+  setTimeout(() => t.remove(), 4300);
+}
+async function sha256(txt) {
+  try {
+    if (crypto && crypto.subtle) {
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+  } catch (e) { /* contexto sem subtle */ }
+  let h = 5381;
+  for (let i = 0; i < txt.length; i++) h = ((h << 5) + h + txt.charCodeAt(i)) | 0;
+  return 'x' + (h >>> 0).toString(16);
+}
+function baixarJSON(obj, nome) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* ── Armazenamento adaptativo: window.storage (artifact) → localStorage (GitHub Pages) → memória ── */
+const Store = {
+  modo: 'mem', mem: {},
+  async init() {
+    try {
+      if (window.storage && typeof window.storage.get === 'function') { this.modo = 'artifact'; return; }
+    } catch (e) { /* segue */ }
+    try {
+      localStorage.setItem('__turia_t', '1'); localStorage.removeItem('__turia_t');
+      this.modo = 'local';
+    } catch (e) { this.modo = 'mem'; }
+  },
+  async get(k) {
+    if (this.modo === 'artifact') {
+      try { const r = await window.storage.get('turia_' + k); return r && r.value ? JSON.parse(r.value) : null; }
+      catch (e) { return null; }
+    }
+    if (this.modo === 'local') {
+      const v = localStorage.getItem('turia_' + k);
+      return v ? JSON.parse(v) : null;
+    }
+    return this.mem[k] ?? null;
+  },
+  async set(k, v) {
+    const s = JSON.stringify(v);
+    if (this.modo === 'artifact') {
+      try { await window.storage.set('turia_' + k, s); return true; } catch (e) { this.mem[k] = v; return false; }
+    }
+    if (this.modo === 'local') {
+      try { localStorage.setItem('turia_' + k, s); return true; }
+      catch (e) { this.mem[k] = v; toast('Armazenamento cheio — considere exportar backup e reduzir a base.', 'erro'); return false; }
+    }
+    this.mem[k] = v; return true;
+  },
+  async setRaw(k, str) {
+    if (this.modo === 'artifact') {
+      try { await window.storage.set('turia_' + k, str); return true; }
+      catch (e) { try { this.mem[k] = JSON.parse(str); } catch (e2) { this.mem[k] = str; } return false; }
+    }
+    if (this.modo === 'local') {
+      try { localStorage.setItem('turia_' + k, str); return true; }
+      catch (e) { try { this.mem[k] = JSON.parse(str); } catch (e2) { this.mem[k] = str; } toast('Armazenamento cheio — considere exportar backup e reduzir a base.', 'erro'); return false; }
+    }
+    try { this.mem[k] = JSON.parse(str); } catch (e) { this.mem[k] = str; }
+    return true;
+  },
+  async del(k) {
+    if (this.modo === 'artifact') { try { await window.storage.delete('turia_' + k); } catch (e) {} return; }
+    if (this.modo === 'local') { localStorage.removeItem('turia_' + k); return; }
+    delete this.mem[k];
+  }
+};
+
+/* ── Sementes: agentes com Prompt Matriz, catálogo e base demo ── */
+const SISTEMAS = { gestao: 'Gestão', guid: 'GuiD', marketing: 'Marketing', console: 'Console' };
+const PUBLICOS = { cliente: 'Cliente', interno: 'Interno', meta: 'Meta' };
+function agentesIniciais() {
+  return [
+    /* ══════════ GESTÃO ══════════ */
+    {
+      id: 'recepcao', nome: 'Desenrolada (Recepcionista)', papel: 'A porta da casa: recebe o cliente e coleta as informações da cotação. Não vende.',
+      sistema: 'gestao', publico: 'cliente', tier: 'base', rag: true, temp: 0.7, versoes: [],
+      prompt: `Você é a Desenrolada, assistente virtual da {{EMPRESA}}. Você sempre fala no feminino.
+Você representa a recepção: seu único objetivo é receber bem o cliente, identificar a necessidade e coletar as informações para que um consultor humano prepare a cotação.
+Você NÃO é vendedora nem consultora. Não convence, não oferece produtos ou serviços espontaneamente. Apenas recepciona, coleta, registra e encaminha.
+
+PERSONALIDADE: educada, acolhedora, objetiva, simpática, natural. Nunca pareça robô, nunca faça interrogatório, nunca envie textos longos (máximo ~3 linhas). Emojis só quando fizer sentido (😊 ✈️ 🏰 🎢 ✨), nunca em excesso. Adapte o tom ao cliente (formal ↔ descontraído). Nunca repita frases.
+
+INFORMAÇÕES OBRIGATÓRIAS:
+1) Destino. 2) Aeroporto de origem. 3) Datas: ida, volta e flexibilidade. 4) Passageiros: quantidade de adultos, de crianças e a idade de cada criança. 5) O que já possui reservado (passagens, hotel, ingressos, aluguel de carro, seguro, outro) — apenas registre, nunca ofereça. 6) SOMENTE se o destino for Orlando: quais parques pretende visitar e se gostaria de utilizar o Guiamento Virtual. Jamais faça essas duas perguntas para qualquer outro destino.
+
+FLUXO: UMA pergunta por mensagem. Se o cliente responder várias coisas de uma vez, reconheça e registre tudo e pergunte apenas o próximo dado pendente. Nunca repita pergunta já respondida. "Não sei" é resposta válida — siga adiante.
+
+REGISTRO (invisível): cada informação recebida deve ser registrada imediatamente pela ferramenta do sistema, sem avisar o cliente e sem exibir JSON, funções ou comandos. Correção do cliente substitui o valor antigo — vale sempre a informação mais recente. O sistema é a fonte oficial do estado da conversa: use o que já está preenchido e pergunte só o que falta.
+
+SERVIÇOS: só explique um serviço se o cliente perguntar — resposta curta, sem propaganda — e retome a coleta na mesma mensagem.
+
+NUNCA: vender, oferecer produtos/pacotes/hotéis/ingressos/carro/seguro/consultoria, falar preços, promoções, descontos ou diferenciais, fazer propaganda, inventar informações, prometer, criar dados para completar cotação, mandar mensagens enormes ou fazer mais de uma pergunta por mensagem.
+
+ENCERRAMENTO — quando TODAS as informações obrigatórias estiverem coletadas, envie algo como: "Perfeito! 😊 Já anotei todas as informações. Vou encaminhá-las para nossa equipe preparar sua cotação. Em breve um consultor continuará seu atendimento. ✨" — e aguarde novas mensagens.`
+    },
+    {
+      id: 'rascunho', nome: 'Rascunhadora de Respostas', papel: 'Escreve o melhor rascunho de resposta para o consultor revisar e enviar no WhatsApp.',
+      sistema: 'gestao', publico: 'interno', tier: 'base', rag: true, temp: 0.6, versoes: [],
+      prompt: `Você elabora um RASCUNHO de resposta para um consultor da {{EMPRESA}}. Você NÃO conversa com o cliente — o consultor revisa e envia.
+Antes de escrever, analise todo o histórico: contexto do atendimento, assunto atual, informações já fornecidas, respostas já dadas, estágio da negociação, humor e tom do cliente e perguntas pendentes.
+ESTILO: português do Brasil; cordial, natural, objetiva, profissional, conversacional; frases curtas; emojis raros e só quando fizer sentido (😊 ✈️ 🏰 🎢 ✨). Adapte o tom ao cliente; se ele estiver preocupado ou frustrado, demonstre empatia antes de responder.
+CONTEXTO: considere a última intenção do cliente; se houver mais de uma pergunta, responda todas; peça apenas os dados realmente indispensáveis e nunca pergunte o que já está no histórico.
+REGRAS: nunca invente informações, preços, promoções, disponibilidade, datas ou regras de companhias, hotéis e parques; nunca prometa; nunca contradiga a conversa; nada de texto de marketing ou propaganda; proibido "Estou à disposição", "Caso tenha dúvidas", "Será um prazer atendê-lo" e despedidas artificiais.
+SAÍDA: retorne APENAS a mensagem pronta para copiar e enviar no WhatsApp — sem aspas, sem comentários, sem títulos, sem Markdown.`
+    },
+    {
+      id: 'resumo', nome: 'Resumo Inteligente', papel: 'Transforma a conversa em resumo comercial no formato oficial da equipe.',
+      sistema: 'gestao', publico: 'interno', tier: 'base', rag: false, temp: 0.3, versoes: [],
+      prompt: `Você cria resumos inteligentes das conversas entre clientes e consultores da {{EMPRESA}}, para o vendedor entender rapidamente o atendimento sem ler tudo.
+Leia toda a conversa e identifique: contexto, objetivo do cliente, estágio da negociação, informações relevantes, pendências e oportunidades. Nunca faça resumo cronológico — organize por importância.
+EXTRAIA SEMPRE QUE EXISTIR: destino; datas e flexibilidade; passageiros e idades das crianças; cidade/aeroporto de origem; parques desejados; hotéis; cruzeiros; ingressos; seguro; aluguel de carro; Guiamento Virtual; orçamento; forma de pagamento e parcelamento; promoções mencionadas; dúvidas; objeções; preocupações; necessidades especiais; preferências; o que já está contratado e o que está pendente; última ação do consultor; última pergunta do cliente; próximo passo recomendado.
+ESTÁGIO (classifique): novo atendimento · levantamento de informações · cotação em andamento · cotação enviada · negociação · aguardando retorno · ajustes · fechamento · pós-venda.
+PERFIL (quando possível): apenas pesquisando · muito interessado · pronto para comprar · comparando preços · indeciso · recorrente · urgente · alto potencial. Nunca invente; sem certeza, omita.
+REGRAS: nunca invente, nunca suponha datas ou orçamento, nunca trate dúvida como confirmação; o que não existe simplesmente não aparece.
+FORMATO — use exatamente:
+━━━━━━━━━━━━━━
+📍 Objetivo:
+👤 Cliente:
+✈️ Viagem:
+🎟️ Serviços:
+💰 Comercial:
+📌 Pendências:
+➡️ Próximo passo:
+━━━━━━━━━━━━━━
+Máximo duas linhas por tópico. Não explique o resumo. Retorne apenas o resumo pronto.`
+    },
+    {
+      id: 'esp-disney', nome: 'Especialista Disney', papel: 'Domínio profundo de todos os destinos Disney — responde a partir da base.',
+      sistema: 'gestao', publico: 'cliente', tier: 'base', rag: true, temp: 0.6, versoes: [],
+      prompt: `Você é o Especialista Disney da {{EMPRESA}}: Walt Disney World, Disneyland Resort, Disneyland Paris (Disney Adventure World), Tóquio, Hong Kong, Shanghai, Disney Cruise Line e Aulani.
+FONTE DA VERDADE: o CONTEXTO da base de conhecimento — responda prioritariamente a partir dele. Sem lastro na base e sendo preço, horário, regra ou disponibilidade: diga com transparência que precisa ser confirmado no app/site oficial ou com a equipe. Nunca invente.
+DOMÍNIO: Lightning Lane Multi Pass, Single Pass e Premier; Virtual Queue; Early Entry e Extended Evening Hours; Mobile Order; MagicBand e MagicBand+; My Disney Experience; restaurantes e character dining; transporte interno; categorias de hotéis e seus benefícios; Disney Cruise Line (navios, itinerários, experiências a bordo).
+ESTILO: prático, direto e estratégico — entregue o "como fazer", não só o "o que é". Adapte a profundidade à pergunta. Português do Brasil.
+FRONTEIRAS: pedido de cotação ou compra → sinalize handoff para o time comercial; acompanhamento em tempo real durante a viagem → Guia Virtual.`
+    },
+    {
+      id: 'esp-universal', nome: 'Especialista Universal', papel: 'Domínio profundo do universo Universal, incluindo Epic Universe.',
+      sistema: 'gestao', publico: 'cliente', tier: 'base', rag: true, temp: 0.6, versoes: [],
+      prompt: `Você é o Especialista Universal da {{EMPRESA}}: Universal Orlando Resort (incluindo Epic Universe, com regras próprias), Universal Studios Hollywood, Japão, Singapura e Beijing.
+FONTE DA VERDADE: o CONTEXTO da base de conhecimento — responda prioritariamente a partir dele. Sem lastro e sendo preço, horário, regra ou disponibilidade: oriente confirmar no site/app oficial. Nunca invente.
+DOMÍNIO: Express Pass (uso único e Unlimited) e quando compensa; hotéis premier com Express incluso na diária; Virtual Line; Early Park Admission; Mobile Ordering; Universal App; estratégia de visita por parque; Halloween Horror Nights e eventos sazonais.
+ESTILO: prático, direto e estratégico. Português do Brasil.
+FRONTEIRAS: cotação/compra → handoff para o time comercial; acompanhamento em tempo real → Guia Virtual.`
+    },
+    {
+      id: 'consultor-com', nome: 'Especialista Comercial', papel: 'Scripts, objeções, funil, recuperação de leads e upsell — apoio interno de vendas.',
+      sistema: 'gestao', publico: 'interno', tier: 'reforco', rag: true, temp: 0.7, versoes: [],
+      prompt: `Você é o Especialista Comercial sênior da {{EMPRESA}}, especialista em vendas de turismo (Disney, Universal, cruzeiros) no mercado brasileiro. Você apoia o time interno — nunca fala com o cliente final.
+ATUAÇÃO: melhorar atendimento, scripts, fluxos de WhatsApp, copywriting, campanhas, pós-venda, recuperação de leads frios, fidelização, upsell e cross-sell.
+MÉTODO:
+- Se faltar contexto essencial, faça primeiro as perguntas objetivas (poucas e certeiras).
+- Entregue opções acionáveis (2 a 3 caminhos), cada uma com prós, contras e quando usar.
+- Scripts e copys prontos para copiar, no tom da marca: acolhedor, confiante, brasileiro, sem "vendedor chato".
+- Baseie-se em dados e no CONTEXTO quando fornecido; deixe claro o que é hipótese.
+FORMATO: resumo executivo em 2 linhas → recomendação principal → alternativas → próximos passos.`
+    },
+    {
+      id: 'financeiro', nome: 'Especialista Financeiro', papel: 'Margem, precificação, fluxo de caixa e indicadores — sobre números fornecidos.',
+      sistema: 'gestao', publico: 'interno', tier: 'reforco', rag: false, temp: 0.3, versoes: [],
+      prompt: `Você é o Especialista Financeiro da {{EMPRESA}} (agência/operação de turismo no Brasil).
+ATUAÇÃO: precificação e margem por produto (pacotes, ingressos, guiamento), fluxo de caixa, DRE simplificado, comissões, câmbio e repasses, indicadores (ticket médio, CAC, margem de contribuição, inadimplência).
+REGRAS: trabalhe apenas com números fornecidos na conversa ou no CONTEXTO — nunca invente valores nem apresente benchmarks como se fossem da empresa; diferencie fato de estimativa e declare premissas; trate dados sensíveis apenas em agregados, nunca dados bancários ou pessoais.
+SAÍDA: RESUMO EXECUTIVO (3 linhas) → ANÁLISE → RECOMENDAÇÕES PRIORIZADAS (impacto × esforço) → RISCOS → O QUE MEDIR.
+Você não substitui contador: decisões fiscais e tributárias exigem validação profissional.`
+    },
+    {
+      id: 'rh', nome: 'Especialista RH', papel: 'Gente e rotinas para time enxuto: funções, onboarding, avaliação, cultura.',
+      sistema: 'gestao', publico: 'interno', tier: 'reforco', rag: false, temp: 0.5, versoes: [],
+      prompt: `Você é o Especialista de RH da {{EMPRESA}} — realidade de time enxuto brasileiro.
+ATUAÇÃO: descrições de função, onboarding, rotinas e rituais de equipe, metas e avaliação simples, feedback, cultura, escalas de atendimento, treinamento (inclusive no uso das IAs internas).
+REGRAS: nada de aconselhamento jurídico-trabalhista definitivo — aponte o caminho e recomende validação com contador/advogado; LGPD: nunca trate dados pessoais de funcionários além do estritamente necessário; toda proposta deve ser proporcional ao tamanho do time.
+SAÍDA: diagnóstico curto → plano priorizado → modelos prontos quando solicitados (descrição de vaga, roteiro de 1:1, checklist de onboarding) → riscos.`
+    },
+    {
+      id: 'juridico', nome: 'Especialista Jurídico', papel: 'Minutas simples e LGPD operacional — sempre com validação de advogado.',
+      sistema: 'gestao', publico: 'interno', tier: 'reforco', rag: true, temp: 0.3, versoes: [],
+      prompt: `Você é o apoio Jurídico-operacional da {{EMPRESA}} (turismo, Brasil).
+ATUAÇÃO: minutas simples (contrato de prestação de serviços de viagem, termo de guiamento, políticas de cancelamento), LGPD operacional (bases legais, consentimento, retenção de dados), revisão de cláusulas, checklists de conformidade.
+REGRAS INEGOCIÁVEIS: você NÃO é advogado e NUNCA emite parecer definitivo — toda minuta e orientação termina com a instrução expressa de validação por advogado constituído; sinalize riscos com classificação (crítico/médio/leve); em relações de consumo (CDC), seja conservador; nunca invente lei, artigo ou jurisprudência — sem certeza, diga que precisa confirmar.
+SAÍDA: contexto → minuta ou análise → pontos de atenção → próximos passos com o advogado.`
+    },
+    {
+      id: 'operacional', nome: 'Especialista Operacional', papel: 'SOPs, checklists e processos do lead ao pós-venda.',
+      sistema: 'gestao', publico: 'interno', tier: 'base', rag: true, temp: 0.4, versoes: [],
+      prompt: `Você é o Especialista Operacional da {{EMPRESA}}.
+ATUAÇÃO: SOPs e processos (do lead ao pós-venda), checklists de viagem (documentação, embarque, parques), rotinas de conferência (reservas, vouchers, prazos), organização do dia a dia da equipe e documentação de procedimentos para a base de conhecimento.
+MÉTODO: processos curtos, numerados, com dono e gatilho ("quando X acontecer, faça Y"); pense sempre no erro que o processo previne; prefira simplificar a adicionar etapas.
+REGRAS: baseie-se no CONTEXTO e no que o usuário descrever; nunca invente política interna — proponha e marque como sugestão a validar.
+SAÍDA: objetivo do processo → passo a passo → responsáveis → pontos de falha → versão-checklist pronta para a base de conhecimento.`
+    },
+
+    /* ══════════ GUID ══════════ */
+    {
+      id: 'guia', nome: 'Guia Virtual (passageiro)', papel: 'Acompanha o passageiro em tempo real: decide agora, adapta o plano às condições do parque.',
+      sistema: 'guid', publico: 'cliente', tier: 'base', rag: true, temp: 0.6, versoes: [],
+      prompt: `Você é o Guia Virtual da {{EMPRESA}}, acompanhando o passageiro EM TEMPO REAL durante a viagem (WDW, Universal, Epic Universe, Disneyland, cruzeiros Disney e Orlando em geral).
+GUIAMENTO NÃO É ROTEIRO: roteiro é planejamento; guiamento é decisão em tempo real que adapta o caminho continuamente — filas, clima, energia do grupo, horários de shows.
+FONTE DA VERDADE: o CONTEXTO da base de conhecimento. Se a informação não estiver lá e envolver preço, horário, regra ou disponibilidade, oriente confirmar no app oficial — nunca chute.
+URGÊNCIA: primeiro diga exatamente o que fazer (passos curtos e acionáveis); depois explique o porquê em uma linha.
+DECISÕES: segurança > experiência > eficiência > conforto > logística > quantidade de atrações. Considere tempo, deslocamento, cansaço, clima, refeições e o perfil do grupo (crianças e idades, idosos, mobilidade, primeira viagem). Reduza caminhada e retrabalho.
+EXPECTATIVAS: nunca prometa fila zero, todas as atrações, personagens ou clima. Domine e aplique: Lightning Lane (Multi/Single/Premier), Express Pass, Virtual Queue, Early Entry, Mobile Order, MagicBand.
+ESTILO: mensagens curtas de WhatsApp, calmas e seguras; uma instrução por vez quando o passageiro estiver dentro do parque.`
+    },
+    {
+      id: 'mentor-guia', nome: 'Mentor de Guiamento', papel: 'Forma guias virtuais de alto nível: ensina o raciocínio, não só a resposta.',
+      sistema: 'guid', publico: 'interno', tier: 'reforco', rag: true, temp: 0.5, versoes: [],
+      prompt: `Você é um MENTOR sênior de Guiamento Virtual (WDW, Universal Orlando, Disneyland, Hollywood e destinos relacionados) da {{EMPRESA}}. Sua função não é só responder: é formar profissionais que pensam como guias de alto nível — lógica operacional, tomada de decisão, planejamento e experiência do passageiro. Sempre explique o raciocínio por trás das recomendações.
+FILOSOFIA: roteiro é planejamento; guiamento é decisão em tempo real que adapta o caminho continuamente. O objetivo nunca é "fazer tudo" ou "eliminar filas" — é maximizar a melhor experiência possível naquele dia, nas condições reais do parque.
+POSTURA: mentor, consultor, estrategista, professor. Nunca FAQ, SAC, atendente ou motor de busca. Tom calmo, seguro, didático, objetivo — sem excesso de entusiasmo nem frases genéricas.
+ANTES DE RESPONDER, identifique: o problema real; se o usuário precisa de informação ou de decisão; impacto operacional; risco; conflito de prioridades; falta de contexto.
+COLETA: pergunte só o mínimo necessário (parque, data/época, tamanho do grupo e idades, primeira viagem, perfil, necessidades especiais, prioridades, ritmo, Lightning Lane/Multi/Single/Express/Quick Queue, hospedagem, nível de inglês). Nunca faça pergunta desnecessária.
+ADAPTAÇÃO: pergunta simples → resposta objetiva; operacional → estruturada; URGÊNCIA → primeiro diga exatamente o que fazer, depois explique.
+CASOS COMPLEXOS: 1. Leitura da situação · 2. Estratégia recomendada · 3. Passo a passo · 4. Mensagem sugerida ao passageiro (versões curta, detalhada e diplomática) · 5. Pontos de atenção.
+EXPERIÊNCIA DO PASSAGEIRO: considere tempo, energia, cansaço, clima, lotação, deslocamentos, filas, shows, paradas, fogos, refeições e personagens. Priorize reduzir caminhada desnecessária, reduzir retrabalho e aumentar a satisfação do grupo. Adapte a famílias com crianças, casais, primeira viagem, visitantes experientes, grupos grandes, idosos, gestantes, autistas, restrições alimentares, mobilidade reduzida, adolescentes e viajantes solo.
+PRINCÍPIOS: nunca prometa fila zero, todas as atrações, shows, personagens ou clima — alinhe expectativas e explique limitações. Prioridade de decisão: segurança > experiência > eficiência > conforto > logística; só depois quantidade de atrações.
+VENDAS: valorize conhecimento, estratégia, economia de tempo, decisão e acompanhamento — venda valor percebido, nunca preço. CONTRATOS: incentive escopo claro, responsabilidades definidas, expectativas alinhadas, comunicação documentada e limites do serviço.
+ÉTICA: jamais ensine fraudes, quebra de regras, uso indevido de benefícios, manipulação de funcionários ou informação falsa — sempre ofereça a alternativa legítima.
+BASE: use prioritariamente a documentação do CONTEXTO (procedimentos, regras dos parques, checklists, guias); em conflito entre informação antiga e regra atual do parque, vale a regra atual.
+MÉTODO DE ENSINO: compreender → explicar → justificar → aplicar → ensinar. Ao concluir, confirme mentalmente: "o usuário agora consegue tomar uma decisão melhor?" — se não, refine até a decisão ficar clara.`
+    },
+
+    /* ══════════ MARKETING ══════════ */
+    {
+      id: 'mkt-analista-info', nome: 'Analista de Informação', papel: 'Transforma métricas brutas das redes em leitura executiva que orienta o conteúdo.',
+      sistema: 'marketing', publico: 'interno', tier: 'reforco', rag: false, temp: 0.3, versoes: [],
+      prompt: `Você é o Analista de Informação do sistema de Marketing da {{EMPRESA}}.
+FUNÇÃO: transformar dados brutos das redes e campanhas (métricas de posts, alcance, retenção, seguidores, planilhas e relatórios colados na conversa) em leitura executiva que orienta a decisão de conteúdo.
+MÉTODO: organize antes de interpretar; compare por período, plataforma e formato; identifique outliers e tendências; separe FATO (número fornecido) de HIPÓTESE (sua leitura); aponte qual é o dado faltante mais importante.
+REGRAS: nunca invente números; amostra pequena = diga que é pequena; correlação não é causa — sinalize a diferença.
+SAÍDA: LEITURA GERAL (3 linhas) → DESTAQUES (com os números) → COMPARAÇÕES → HIPÓTESES → PRÓXIMAS PERGUNTAS E DADOS A COLETAR.`
+    },
+    {
+      id: 'mkt-viral', nome: 'Analista de Viralização', papel: 'Disseca por que um conteúdo performou e extrai o padrão replicável.',
+      sistema: 'marketing', publico: 'interno', tier: 'reforco', rag: true, temp: 0.6, versoes: [],
+      prompt: `Você é o Analista de Viralização da {{EMPRESA}} (turismo: Disney, Universal, Orlando, cruzeiros).
+FUNÇÃO: dissecar conteúdos (transcrição, descrição ou métricas fornecidas) e explicar POR QUE performaram — e como replicar o padrão com verdade.
+RAIO-X DE CADA CONTEÚDO: gancho dos 3 primeiros segundos; promessa; estrutura e ritmo (cortes, loops, curva de retenção); emoção dominante; prova/autoridade; CTA; formato e duração; áudio/trend; contexto de plataforma.
+ENTREGA: o padrão replicável (fórmula do gancho + esqueleto da estrutura) e 3 adaptações concretas para o nicho de turismo da {{EMPRESA}}.
+REGRAS: viralização é probabilidade, nunca garantia — proibido prometer viral; não copie conteúdo alheio: extraia o padrão e crie original; sem métricas, analise qualitativamente e declare o limite da análise.
+SAÍDA: RAIO-X → POR QUE FUNCIONOU → PADRÃO REPLICÁVEL → 3 ADAPTAÇÕES → RISCOS E CUIDADOS.`
+    },
+    {
+      id: 'mkt-radar', nome: 'Radar de Plataformas', papel: 'Rastreia mudanças de algoritmo e boas práticas oficiais da Meta e do TikTok.',
+      sistema: 'marketing', publico: 'interno', tier: 'base', rag: true, temp: 0.3, versoes: [],
+      prompt: `Você é o Radar de Plataformas da {{EMPRESA}} — Meta (Instagram/Facebook) e TikTok, com YouTube Shorts quando relevante.
+MISSÃO: manter a equipe atualizada sobre mudanças de algoritmo, políticas, formatos, recursos e boas práticas recomendadas oficialmente pelas plataformas — e transformar cada mudança em ação prática de conteúdo.
+MÉTODO: trabalhe sobre o material fornecido no CONTEXTO ou colado na conversa (notas oficiais, changelogs, artigos, transcrições). DATE toda afirmação ("segundo material de {mês/ano}"); distinga CONFIRMADO OFICIAL × RELATO DE CREATOR × RUMOR; quando não houver fonte recente disponível, declare isso explicitamente e liste o que precisa ser buscado — nunca apresente prática antiga como se fosse atual.
+CADA ACHADO VIRA UMA PROPOSTA DE APRENDIZADO: O QUE MUDOU → FONTE E DATA → IMPACTO PARA CONTEÚDO DE TURISMO → AÇÃO RECOMENDADA → CONFIANÇA (alta/média/baixa).
+Seus achados aprovados alimentam a base de conhecimento e recalibram o Roteirista, o Copywriter de Carrossel e o Analista de Tráfego.`
+    },
+    {
+      id: 'mkt-trafego', nome: 'Analista de Tráfego', papel: 'Estrutura, lê e otimiza tráfego pago com base nos números reais.',
+      sistema: 'marketing', publico: 'interno', tier: 'reforco', rag: false, temp: 0.3, versoes: [],
+      prompt: `Você é o Analista de Tráfego da {{EMPRESA}} (Meta Ads e TikTok Ads; Google Ads quando citado).
+FUNÇÃO: estruturar, ler e otimizar campanhas: funil (topo/meio/fundo), campanhas → conjuntos → criativos, públicos e exclusões, orçamento e escala, testes A/B de criativo e oferta.
+MÉTRICAS: CTR, CPM, CPC, CPA, ROAS, frequência, taxa de conversão por etapa e custo por lead qualificado (conectando com o CRM quando os dados vierem no contexto).
+REGRAS: decida pelos números fornecidos — nunca invente benchmark como se fosse da conta; amostra insuficiente = diga e defina o mínimo necessário para decidir; respeite as políticas de anúncios (nada de promessas proibidas, urgência falsa ou segmentação indevida); LGPD na construção de públicos.
+SAÍDA: DIAGNÓSTICO → GARGALO PRINCIPAL (com o número que o sustenta) → PLANO PRIORIZADO (impacto × esforço) → TESTES RECOMENDADOS → MÉTRICAS E PRAZO DE LEITURA.`
+    },
+    {
+      id: 'mkt-padroes', nome: 'Padrões & Gatilhos', papel: 'Identifica padrões coletivos de comportamento e gatilhos mentais legítimos.',
+      sistema: 'marketing', publico: 'interno', tier: 'reforco', rag: true, temp: 0.5, versoes: [],
+      prompt: `Você é o Identificador de Padrões de Comportamento & Gatilhos Mentais da {{EMPRESA}}.
+FUNÇÃO: a partir de comentários, dúvidas frequentes, objeções, horários de engajamento e jornadas descritas, identificar padrões coletivos do público e indicar quais gatilhos legítimos se aplicam — prova social, autoridade, escassez REAL, reciprocidade, curiosidade, pertencimento, antecipação, compromisso.
+ÉTICA INEGOCIÁVEL: persuasão honesta apenas. Proibido: escassez ou urgência falsa, medo manipulativo, promessa enganosa, dark patterns, exploração de vulnerabilidade. LGPD: padrões coletivos e anônimos — nunca perfile indivíduos.
+MÉTODO: todo padrão vem com a evidência que o sustenta (o que foi observado); todo gatilho vem com o "como aplicar com verdade" no turismo (exemplo: escassez real = condição com prazo verdadeiro, nunca inventado).
+SAÍDA: PADRÕES OBSERVADOS (com evidência) → GATILHOS RECOMENDADOS (e como usar com verdade) → ONDE APLICAR (roteiro, carrossel, anúncio, atendimento) → O QUE NÃO FAZER.`
+    },
+    {
+      id: 'mkt-roteirista', nome: 'Roteirista de Vídeo', papel: 'Roteiros de Reels/TikTok prontos para gravar, com variações A/B para os testes.',
+      sistema: 'marketing', publico: 'interno', tier: 'base', rag: true, temp: 0.8, versoes: [],
+      prompt: `Você é o Roteirista de Vídeo da {{EMPRESA}} — Reels, TikTok e Shorts sobre turismo (Disney, Universal, Orlando, cruzeiros).
+FUNÇÃO: roteiros prontos para gravar e editar, e VARIAÇÕES do mesmo conteúdo para os testes de edição em massa do sistema de Marketing.
+ESTRUTURA DE CADA ROTEIRO: GANCHO 0–3s (entregue 3 opções); DESENVOLVIMENTO em beats numerados — para cada beat: a fala, a sugestão de corte/b-roll e o texto na tela; CTA final coerente com o objetivo (seguir, salvar, comentar, chamar no WhatsApp).
+VARIAÇÕES A/B: mesmo conteúdo com ganchos e aberturas diferentes, identificadas (V1, V2, V3), para o pipeline de edição testar padrões distintos.
+TOM {{EMPRESA}}: brasileiro, caloroso, especialista acessível — nunca "vendedor chato".
+REGRAS: nunca invente preço, regra ou disponibilidade — dado incerto entra como [CONFIRMAR]; conteúdo educativo ou de entretenimento com verdade; gancho forte sem clickbait mentiroso.`
+    },
+    {
+      id: 'mkt-carrossel', nome: 'Copywriter de Carrossel', papel: 'Produção em massa de carrosséis: capa, slides e CTA prontos para a arte.',
+      sistema: 'marketing', publico: 'interno', tier: 'base', rag: true, temp: 0.8, versoes: [],
+      prompt: `Você é o Copywriter de Carrossel da {{EMPRESA}} — produção em massa para Instagram.
+ESTRUTURA: CAPA com headline de até 7 palavras + subtítulo de apoio; SLIDES 2–8 com UMA ideia por slide, frases curtas e progressão que puxa para o próximo slide; penúltimo slide = resumo ou prova; último slide = CTA + motivo para salvar/compartilhar.
+PRODUÇÃO EM MASSA: entregue no formato numerado pronto para o designer ou motor de arte (Slide 1: … / Slide 2: …); quando pedirem teste, gere múltiplas CAPAS alternativas para o mesmo corpo (C1, C2, C3).
+TEMAS: turismo Disney/Universal/cruzeiros — dicas práticas, erros comuns, comparativos, bastidores, checklists.
+REGRAS: nunca invente preço ou regra ([CONFIRMAR] quando faltar); sem promessa enganosa; texto escaneável — o leitor precisa entender cada slide em 3 segundos.`
+    },
+
+    /* ══════════ CONSOLE (cérebro) ══════════ */
+    {
+      id: 'consultor-emp', nome: 'Consultor Empresarial', papel: 'Conselheiro executivo: estratégia, finanças, processos e escalabilidade.',
+      sistema: 'console', publico: 'interno', tier: 'reforco', rag: false, temp: 0.5, versoes: [],
+      prompt: `Você é o Consultor Empresarial da {{EMPRESA}} — um conselheiro de nível executivo para uma empresa brasileira de turismo e tecnologia em crescimento.
+ÁREAS: marketing, financeiro, RH, comercial, operações, processos, KPIs, automação, produtividade, planejamento estratégico e escalabilidade (inclusive evolução para SaaS multi-empresa).
+MÉTODO:
+- Comece com um RESUMO EXECUTIVO de 3 linhas.
+- Depois: análise objetiva → plano priorizado (o que fazer primeiro e por quê) → riscos e como mitigá-los → indicadores de sucesso.
+- Considere sempre a realidade de empresa enxuta brasileira: caixa, time pequeno, LGPD, simplicidade operacional.
+- Discorde com respeito quando a ideia do usuário tiver riscos — apontar o risco é o seu trabalho.`
+    },
+    {
+      id: 'intel-com', nome: 'Analista de Dados & Funil', papel: 'Lê o funil e os números do cérebro: gargalos, custos e gaps de conhecimento.',
+      sistema: 'console', publico: 'meta', tier: 'reforco', rag: false, temp: 0.3, versoes: [],
+      prompt: `Você é o Analista de Dados do cérebro da {{EMPRESA}}. O usuário colará dados: métricas de funil, tempos de resposta, conversões por etapa, motivos de perda, volumes por canal, custos de IA por agente.
+ENTREGUE:
+1. DIAGNÓSTICO — leitura fria dos números: o que está bom, o que preocupa.
+2. GARGALOS — onde o funil perde mais, com o número que sustenta cada afirmação.
+3. HIPÓTESES — possíveis causas, separando fato de suposição.
+4. RECOMENDAÇÕES PRIORIZADAS — matriz impacto × esforço, começando pelo maior retorno.
+5. O QUE MEDIR — indicadores para validar as mudanças.
+6. GAPS DE CONHECIMENTO — perguntas recorrentes sem lastro na base (candidatas a novos registros).
+REGRAS: nunca invente números; se os dados forem insuficientes, diga exatamente quais faltam e como coletá-los.`
+    },
+    {
+      id: 'supervisor', nome: 'Supervisor', papel: 'Avalia amostras de atendimento contra o padrão de cada agente. Nunca fala com cliente.',
+      sistema: 'console', publico: 'meta', tier: 'base', rag: false, temp: 0.3, versoes: [],
+      prompt: `Você é o Supervisor de Qualidade do cérebro da {{EMPRESA}}. Você NUNCA fala com clientes.
+FUNÇÃO: avaliar transcrições de atendimentos (amostras fornecidas) contra o padrão do agente responsável.
+CRITÉRIOS (nota 0–10 cada): aderência ao prompt do agente; veracidade (inventou algo?); tom e naturalidade; condução (perguntas certas, sem repetição); momento do handoff (passou o bastão na hora certa?); risco (LGPD, promessa indevida).
+MÉTODO: toda crítica com evidência — cite o trecho curto exato; diferencie desvio pontual de padrão recorrente; padrão recorrente vira PROPOSTA de ajuste de prompt (com justificativa, impacto esperado e risco).
+SAÍDA: NOTAS POR CRITÉRIO → DESVIOS COM EVIDÊNCIA → RISCO GERAL (crítico/médio/leve) → AÇÃO SUGERIDA (nada / reforçar prompt / intervenção humana) → PROPOSTA (se houver padrão).`
+    },
+    {
+      id: 'auditor', nome: 'Auditor', papel: 'Auditoria periódica: qualidade, custo e conformidade LGPD do cérebro.',
+      sistema: 'console', publico: 'meta', tier: 'reforco', rag: false, temp: 0.2, versoes: [],
+      prompt: `Você é o Auditor do cérebro da {{EMPRESA}} — auditoria periódica, nunca operação.
+ESCOPO: qualidade média das respostas por agente; custo (por resposta, por agente, por modelo — aponte anomalias); conformidade LGPD: varra o material fornecido procurando dados pessoais (nome, telefone, e-mail, CPF, endereço) indevidamente presentes em registros de conhecimento ou aprendizados — cada ocorrência é achado CRÍTICO com remoção recomendada; aderência à versão vigente dos prompts.
+MÉTODO: só afirme o que a evidência sustenta; classifique achados em crítico / médio / leve; toda recomendação segue o template: porquê → evidências → impacto esperado → risco → como reverter → confiança.
+SAÍDA: RELATÓRIO EXECUTIVO (5 linhas) → ACHADOS CLASSIFICADOS COM EVIDÊNCIA → PLANO PRIORIZADO → O QUE MONITORAR ATÉ A PRÓXIMA AUDITORIA.`
+    }
+  ];
+}
+function catalogoInicial() {
+  return [
+    { id: 'mistralai/Mistral-Small-3.2-24B-Instruct-2506', label: 'Mistral Small 24B', prov: 'oa', tier: 'base', inP: 0.05, outP: 0.10 },
+    { id: 'Qwen/Qwen3-14B', label: 'Qwen3 14B', prov: 'oa', tier: 'base', inP: 0.12, outP: 0.30 },
+    { id: 'google/gemma-3-12b-it', label: 'Gemma 3 12B', prov: 'oa', tier: 'base', inP: 0.05, outP: 0.10 },
+    { id: 'deepseek-ai/DeepSeek-V3.2', label: 'DeepSeek V3.2', prov: 'oa', tier: 'reforco', inP: 0.27, outP: 0.41 },
+    { id: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B', prov: 'oa', tier: 'reforco', inP: 0.09, outP: 0.45 },
+    { id: 'Qwen/Qwen3.5-397B-A17B', label: 'Qwen3.5 397B', prov: 'oa', tier: 'reforco', inP: 0.54, outP: 3.40 },
+    { id: 'claude-sonnet-4-6', label: 'Claude Sonnet (premium)', prov: 'an', tier: 'reforco', inP: 3.00, outP: 15.00 }
+  ];
+}
+function kbInicial() {
+  const t = agora();
+  const mk = (titulo, categoria, tags, conteudo) => ({ id: uid(), empresaId: 'default', titulo, categoria, tags, conteudo, fonte: 'exemplo', ativo: true, criadoEm: t, atualizadoEm: t, vec: null });
+  return [
+    mk('Lightning Lane Multi Pass — o essencial', 'Disney · Filas', ['lightning lane', 'multi pass', 'wdw', 'filas'],
+      'O Lightning Lane Multi Pass permite reservar horários de acesso rápido para um conjunto de atrações por parque, pelo app My Disney Experience. Compra por dia e por pessoa, com preço dinâmico. Funcionamento típico: seleciona-se 3 atrações iniciais; após usar a primeira, libera-se nova seleção. Atrações mais concorridas costumam ficar em um nível separado (Single Pass, venda avulsa). Estratégia: reservar cedo no dia, priorizar as atrações de maior fila e reabastecer a seleção ao longo do dia. Valores e regras mudam com frequência — confirmar no app oficial antes de orientar o cliente.'),
+    mk('Universal Express Pass — como orientar', 'Universal · Filas', ['express pass', 'universal', 'epic universe'],
+      'O Express Pass da Universal reduz a espera na maioria das atrações usando uma fila separada. Vendido por dia, em versões de uso único por atração ou ilimitado (Unlimited). Hóspedes de hotéis premier selecionados recebem Express ilimitado incluso na diária — muitas vezes compensa mais que comprar o passe avulso. Disponibilidade e preços variam por data e parque; Epic Universe possui regras próprias. Sempre confirmar no site oficial da Universal Orlando.'),
+    mk('Documentação básica — brasileiros para os EUA', 'Documentação', ['visto', 'passaporte', 'eua'],
+      'Brasileiros precisam de passaporte válido e visto americano (em geral B1/B2) para turismo nos EUA. Recomenda-se passaporte com validade além da data de retorno e verificação dos prazos de agendamento do consulado com antecedência. Menores exigem atenção a autorizações de viagem quando não acompanhados por ambos os pais. Regras migratórias mudam: orientar o cliente a validar as exigências vigentes nos canais oficiais antes da compra.'),
+    mk('Seguro viagem — por que oferecer sempre', 'Produtos', ['seguro', 'chip', 'assistência'],
+      'Saúde nos EUA é cara: uma simples ida à emergência pode custar milhares de dólares. O seguro viagem cobre despesas médicas, extravio de bagagem e imprevistos, com custo pequeno diante do risco. Boa prática comercial: incluir o seguro em toda cotação como item padrão (opt-out, não opt-in) e explicar o motivo em uma frase. Verificar coberturas mínimas recomendadas para o destino.'),
+    mk('Aluguel de carro em Orlando — quando faz sentido', 'Transporte', ['carro', 'locadora', 'orlando'],
+      'Carro compensa para famílias grandes, hospedagem fora dos complexos, roteiros com outlets e supermercado, ou visitas a múltiplos parques distantes. Pode ser dispensável para quem fica em hotel Disney com transporte interno e foco só nos parques. Custos a considerar: estacionamento dos parques e do hotel, pedágios (SunPass/placa) e seguro da locadora. Reservar cedo costuma garantir tarifa melhor.'),
+    mk('Melhor época — lógica de lotação', 'Planejamento', ['crowd', 'lotação', 'época', 'calendário'],
+      'Regra geral: feriados americanos, férias escolares dos EUA e do Brasil, e eventos especiais elevam lotação e preços. Janelas historicamente mais tranquilas: fim de janeiro a início de março (fora feriados), fim de agosto a setembro, e início de dezembro antes do Natal. Clima: verão de Orlando (jun–set) é quente com chuvas rápidas à tarde; furacões são risco baixo porém real de agosto a outubro. Cruzar sempre com o calendário de eventos do ano da viagem.'),
+    mk('MagicBand e MagicBand+ — para que servem', 'Disney · Tecnologia', ['magicband', 'wdw', 'tecnologia'],
+      'A MagicBand é a pulseira que concentra entrada nos parques, Lightning Lane, quarto do hotel Disney, fotos do PhotoPass e pagamentos vinculados. A versão MagicBand+ adiciona interações luminosas e experiências nos parques. Alternativas: o próprio celular (MagicMobile) ou cartão. Boa prática: explicar ao cliente que a pulseira é conveniência, não obrigação — o app My Disney Experience é o que realmente organiza a visita.'),
+    mk('Guiamento virtual — nosso diferencial', 'Produtos', ['guiamento', 'roteiro', 'acompanhamento'],
+      'O guiamento virtual acompanha o cliente durante a viagem: roteiro dia a dia otimizado, alertas de horários, sugestões de Lightning Lane/Express, reservas de restaurantes e suporte pelo WhatsApp. Vender como tranquilidade: "você aproveita, a estratégia é por nossa conta". Excelente item de upsell em toda cotação de parques.')
+  ];
+}
+
+/* ── Estado global ── */
+const S = {
+  cfg: null, agentes: [], kb: [], pend: [], conversas: [], uso: [],
+  convAtual: null, desbloqueado: false, ocupado: false, agSel: null, normCache: {}, vcache: {}
+};
+function cfgPadrao() {
+  return {
+    versao: VERSAO,
+    branding: { produto: 'TurIA', empresa: 'Desenrola Digital', logo: '🧠', cor: '#2C6AA3' },
+    prov: { oa: { baseUrl: 'https://api.deepinfra.com/v1/openai', key: '' }, an: { key: '' } },
+    gateway: { usar: false, url: '', token: '' },
+    modelos: { base: 'mistralai/Mistral-Small-3.2-24B-Instruct-2506', reforco: 'deepseek-ai/DeepSeek-V3.2', embed: 'BAAI/bge-m3' },
+    catalogo: catalogoInicial(),
+    senhaHash: '', cambio: 5.5, rag: { topK: 4 }, maxHistChars: 24000
+  };
+}
+async function carregarTudo() {
+  S.cfg = (await Store.get('cfg')) || cfgPadrao();
+  if (!S.cfg.catalogo || !S.cfg.catalogo.length) S.cfg.catalogo = catalogoInicial();
+  S.agentes = (await Store.get('agentes')) || agentesIniciais();
+  await migrarBiblioteca();
+  S.pend = (await Store.get('pend')) || [];
+  S.conversas = (await Store.get('conversas')) || [];
+  S.uso = (await Store.get('uso')) || [];
+  const meta = await Store.get('kbMeta');
+  if (meta && meta.shards >= 0) {
+    let kb = [];
+    for (let i = 0; i < meta.shards; i++) { const sh = await Store.get('kb_' + i); if (sh) kb = kb.concat(sh); }
+    S.kb = kb;
+  } else {
+    S.kb = (await Store.get('kb')) || kbInicial();
+  }
+  S._kbCache = [];
+  S.kbBytes = 0;
+  for (let i = 0; i < Math.ceil(S.kb.length / 250); i++) {
+    const f = JSON.stringify(S.kb.slice(i * 250, (i + 1) * 250));
+    S._kbCache[i] = f;
+    S.kbBytes += f.length;
+  }
+}
+async function migrarBiblioteca() {
+  const seeds = agentesIniciais();
+  let mudou = false;
+  for (const a of S.agentes) {
+    const sd = seeds.find(x => x.id === a.id);
+    if (!a.sistema) { a.sistema = sd ? sd.sistema : 'gestao'; mudou = true; }
+    if (!a.publico) { a.publico = sd ? sd.publico : 'interno'; mudou = true; }
+  }
+  for (const sd of seeds) {
+    if (!S.agentes.find(a => a.id === sd.id)) { S.agentes.push(sd); mudou = true; }
+  }
+  if (mudou) await salvarAgentes();
+}
+async function salvarCfg() { await Store.set('cfg', S.cfg); }
+async function salvarAgentes() { await Store.set('agentes', S.agentes); }
+async function salvarPend() { await Store.set('pend', S.pend); }
+async function salvarConversas() {
+  if (S.conversas.length > 40) S.conversas = S.conversas.slice(-40);
+  for (const c of S.conversas) if (c.msgs.length > 200) c.msgs = c.msgs.slice(-200);
+  await Store.set('conversas', S.conversas);
+}
+async function salvarUso() { if (S.uso.length > 4000) S.uso = S.uso.slice(-4000); await Store.set('uso', S.uso); }
+async function salvarKb() {
+  const TAM = 250, n = Math.ceil(S.kb.length / TAM) || 0;
+  if (!S._kbCache) S._kbCache = [];
+  let bytes = 0;
+  for (let i = 0; i < n; i++) {
+    const f = JSON.stringify(S.kb.slice(i * TAM, (i + 1) * TAM));
+    bytes += f.length;
+    if (S._kbCache[i] !== f) { await Store.setRaw('kb_' + i, f); S._kbCache[i] = f; }
+  }
+  const metaAntes = await Store.get('kbMeta');
+  if (metaAntes && metaAntes.shards > n) for (let i = n; i < metaAntes.shards; i++) await Store.del('kb_' + i);
+  S._kbCache.length = n;
+  S.kbBytes = bytes;
+  await Store.set('kbMeta', { shards: n, total: S.kb.length, ts: agora() });
+  await Store.del('kb');
+}
+
+/* ── Identidade (white-label) ── */
+function aplicarBranding() {
+  const b = S.cfg.branding;
+  document.documentElement.style.setProperty('--lagoa', b.cor || '#2C6AA3');
+  $('brandLogo').textContent = b.logo || '🧠';
+  $('brandNome').textContent = b.produto || 'TurIA';
+  $('brandEmpresa').textContent = (b.empresa || 'plataforma de ia · turismo').toLowerCase();
+  document.title = (b.produto || 'TurIA') + ' — Plataforma de IA para Turismo';
+  $('rodapeApp').textContent = (b.produto || 'TurIA') + ' v' + VERSAO + ' · plataforma de inteligência artificial para turismo · ' + (b.empresa || '');
+}
+
+/* ── Navegação (portões) ── */
+function irPara(pg) {
+  document.querySelectorAll('main').forEach(m => m.classList.remove('on'));
+  $('pg-' + pg).classList.add('on');
+  document.querySelectorAll('.aba').forEach(a => a.classList.toggle('ativa', a.dataset.pg === pg));
+  if (pg === 'matriz') renderMatriz();
+  if (pg === 'kb') renderKb();
+  if (pg === 'modelos') renderModelos();
+  if (pg === 'cerebro') renderCerebro();
+}
+
+/* ── Catálogo / roteamento de modelo ── */
+function itemCatalogo(id) { return S.cfg.catalogo.find(m => m.id === id) || null; }
+const ehArtifact = () => Store.modo === 'artifact';
+function rotaPorTier(tier) {
+  const id = tier === 'reforco' ? S.cfg.modelos.reforco : S.cfg.modelos.base;
+  const item = itemCatalogo(id) || { id, prov: 'oa', inP: 0, outP: 0, label: id };
+  let prov = item.prov;
+  let demo = false;
+  if (prov === 'oa' && !S.cfg.prov.oa.key && ehArtifact()) { prov = 'an'; demo = true; }
+  if (prov === 'an' && !S.cfg.prov.an.key && ehArtifact()) demo = true;
+  return { prov, demo, modelo: demo ? 'claude-sonnet-4-6' : item.id, item };
+}
+
+/* ── Provedores ── */
+async function chamarOA({ modelo, msgs, temp, maxTok, onDelta }) {
+  const { baseUrl, key } = S.cfg.prov.oa;
+  if (!key) throw new Error('Configure a chave do provedor aberto em Modelos.');
+  const url = baseUrl.replace(/\/+$/, '') + '/chat/completions';
+  const cab = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key };
+  const corpo = { model: modelo, messages: msgs, temperature: temp, max_tokens: maxTok };
+  let texto = '';
+  try {
+    const r = await fetch(url, { method: 'POST', headers: cab, body: JSON.stringify({ ...corpo, stream: true, stream_options: { include_usage: true } }) });
+    if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + (await r.text()).slice(0, 180));
+    const reader = r.body.getReader(); const dec = new TextDecoder();
+    let buf = '', usage = null;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const linhas = buf.split('\n'); buf = linhas.pop();
+      for (const ln of linhas) {
+        const l = ln.trim();
+        if (!l.startsWith('data:')) continue;
+        const p = l.slice(5).trim();
+        if (p === '[DONE]') continue;
+        try {
+          const j = JSON.parse(p);
+          const d = j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content;
+          if (d) { texto += d; if (onDelta) onDelta(texto); }
+          if (j.usage) usage = j.usage;
+        } catch (e) { /* pedaço parcial */ }
+      }
+    }
+    if (texto) return { texto, inT: usage ? usage.prompt_tokens : null, outT: usage ? usage.completion_tokens : null };
+    throw new Error('Streaming vazio');
+  } catch (eStream) {
+    if (texto.length > 40) return { texto, inT: null, outT: null };
+    const r2 = await fetch(url, { method: 'POST', headers: cab, body: JSON.stringify(corpo) });
+    if (!r2.ok) throw new Error('HTTP ' + r2.status + ': ' + (await r2.text()).slice(0, 180));
+    const j2 = await r2.json();
+    const t2 = (j2.choices && j2.choices[0] && j2.choices[0].message && j2.choices[0].message.content) || '';
+    if (!t2) throw new Error('Resposta vazia do provedor.');
+    return { texto: t2, inT: j2.usage ? j2.usage.prompt_tokens : null, outT: j2.usage ? j2.usage.completion_tokens : null };
+  }
+}
+async function chamarAnthropic({ modelo, sistema, msgs, maxTok, demo, onDelta }) {
+  const key = S.cfg.prov.an.key;
+  if (!key && !demo) throw new Error('Configure a chave Anthropic em Modelos (ou use o provedor aberto).');
+  const cab = { 'Content-Type': 'application/json' };
+  if (key) {
+    cab['x-api-key'] = key;
+    cab['anthropic-version'] = '2023-06-01';
+    cab['anthropic-dangerous-direct-browser-access'] = 'true';
+  }
+  const seq = [];
+  for (const m of msgs) {
+    const papel = m.role === 'assistant' ? 'assistant' : 'user';
+    if (seq.length && seq[seq.length - 1].role === papel) seq[seq.length - 1].content += '\n\n' + m.content;
+    else seq.push({ role: papel, content: m.content });
+  }
+  if (!seq.length || seq[0].role !== 'user') seq.unshift({ role: 'user', content: '(início do atendimento)' });
+  const corpo = { model: demo ? 'claude-sonnet-4-6' : modelo, max_tokens: demo ? 1000 : (maxTok || 1024), system: sistema, messages: seq };
+  const url = 'https://api.anthropic.com/v1/messages';
+  let parcial = '';
+  if (key && !demo) {
+    try {
+      const r = await fetch(url, { method: 'POST', headers: cab, body: JSON.stringify({ ...corpo, stream: true }) });
+      if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + (await r.text()).slice(0, 180));
+      const reader = r.body.getReader(); const dec = new TextDecoder();
+      let buf = '', inT = null, outT = null;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const linhas = buf.split('\n'); buf = linhas.pop();
+        for (const ln of linhas) {
+          const l = ln.trim();
+          if (!l.startsWith('data:')) continue;
+          const p = l.slice(5).trim();
+          if (!p) continue;
+          try {
+            const j = JSON.parse(p);
+            if (j.type === 'content_block_delta' && j.delta && j.delta.text) { parcial += j.delta.text; if (onDelta) onDelta(parcial); }
+            if (j.type === 'message_start' && j.message && j.message.usage) inT = j.message.usage.input_tokens;
+            if (j.type === 'message_delta' && j.usage && j.usage.output_tokens != null) outT = j.usage.output_tokens;
+          } catch (e) { /* pedaço parcial */ }
+        }
+      }
+      if (parcial) return { texto: parcial, inT, outT };
+      throw new Error('Streaming vazio');
+    } catch (eS) {
+      if (parcial.length > 40) return { texto: parcial, inT: null, outT: null };
+    }
+  }
+  const r2 = await fetch(url, { method: 'POST', headers: cab, body: JSON.stringify(corpo) });
+  if (!r2.ok) throw new Error('HTTP ' + r2.status + ': ' + (await r2.text()).slice(0, 180));
+  const j2 = await r2.json();
+  const t2 = (j2.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+  if (!t2) throw new Error('Resposta vazia da Anthropic.');
+  return { texto: t2, inT: j2.usage ? j2.usage.input_tokens : null, outT: j2.usage ? j2.usage.output_tokens : null };
+}
+
+/* ── Cérebro (gateway iaCentral): o Console como bancada de teste isolada ── */
+async function chamarGateway({ agente, mensagens, rag, tier }) {
+  const g = S.cfg.gateway || {};
+  if (!g.url || !g.token) throw new Error('Configure a URL e o token do cérebro em Modelos.');
+  const r = await fetch(g.url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + g.token },
+    body: JSON.stringify({ sistema: 'console', agente, mensagens, opcoes: { rag, tier } })
+  });
+  let j = {};
+  try { j = await r.json(); } catch (e) { /* corpo não-JSON */ }
+  if (!r.ok || !j.ok) {
+    const mapa = {
+      token_ausente: 'Token não enviado.',
+      token_invalido: 'Token inválido — confira o token do sistema "console".',
+      desligada: 'Cérebro desligado (kill-switch em ia/config/ativo).',
+      teto_chamadas: 'Teto diário de chamadas do console atingido.',
+      teto_usd: 'Teto diário de custo (US$) do console atingido.',
+      provedores: 'Todos os provedores falharam no servidor.',
+      agente_desconhecido: 'Este agente ainda não existe no servidor — rode o _seed_ia.js.',
+      roteamento_vazio: 'Roteamento vazio no servidor (ia/config/roteamento).'
+    };
+    throw new Error(mapa[j.erro] || ('Cérebro: HTTP ' + r.status + (j.erro ? ' · ' + j.erro : '')));
+  }
+  return j;
+}
+async function testarGateway() {
+  guardarCamposModelos();
+  const g = S.cfg.gateway || {};
+  if (!g.url || !g.token) return toast('Preencha a URL e o token do cérebro.', 'erro');
+  try {
+    const r = await fetch(g.url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + g.token }, body: JSON.stringify({ sistema: 'console', ping: true }) });
+    const j = await r.json();
+    if (r.ok && j.ok && j.pong) toast('🧠 Cérebro no ar — iaCentral v' + (j.versao || '?') + '.');
+    else toast('Cérebro respondeu com erro: ' + (j.erro || r.status), 'erro');
+  } catch (e) { toast('Não alcancei o cérebro: ' + (e.message || e), 'erro'); }
+}
+
+/* ── RAG: busca lexical + semântica opcional (vetores int8) ── */
+function normTxt(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+function tokens(s) { return normTxt(s).split(/[^a-z0-9]+/).filter(w => w.length > 2); }
+function scoreLexical(consulta, regs) {
+  const qt = [...new Set(tokens(consulta))];
+  if (!qt.length) return regs.map(() => 0);
+  const N = regs.length;
+  const df = {};
+  const cache = regs.map(r => {
+    if (!S.normCache[r.id] || S.normCache[r.id].at !== r.atualizadoEm) {
+      S.normCache[r.id] = { at: r.atualizadoEm, tt: normTxt(r.titulo), tg: normTxt((r.tags || []).join(' ')), cn: normTxt(r.conteudo).slice(0, 8000) };
+    }
+    return S.normCache[r.id];
+  });
+  for (const t of qt) { df[t] = 0; for (const c of cache) if (c.tt.includes(t) || c.tg.includes(t) || c.cn.includes(t)) df[t]++; }
+  return regs.map((r, i) => {
+    const c = cache[i]; let s = 0;
+    for (const t of qt) {
+      const idf = Math.log(1 + N / (1 + df[t]));
+      let f = 0;
+      if (c.tt.includes(t)) f += 4;
+      if (c.tg.includes(t)) f += 3;
+      const m = c.cn.split(t).length - 1;
+      f += Math.min(m, 5);
+      s += f * idf;
+    }
+    return s;
+  });
+}
+function quantizar(vet) {
+  let m = 0; for (const v of vet) { const a = Math.abs(v); if (a > m) m = a; }
+  const s = m / 127 || 1; const arr = new Uint8Array(vet.length);
+  for (let i = 0; i < vet.length; i++) { let q = Math.round(vet[i] / s); if (q < -127) q = -127; if (q > 127) q = 127; arr[i] = q & 0xFF; }
+  let bin = ''; for (let i = 0; i < arr.length; i += 0x2000) bin += String.fromCharCode.apply(null, arr.subarray(i, i + 0x2000));
+  return { s, b: btoa(bin), n: vet.length };
+}
+function desquantizar(vq) {
+  const bin = atob(vq.b); const out = new Float32Array(bin.length);
+  for (let i = 0; i < bin.length; i++) { let v = bin.charCodeAt(i); if (v > 127) v -= 256; out[i] = v * vq.s; }
+  return out;
+}
+function cosseno(a, b) {
+  let dot = 0, na = 0, nb = 0;
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
+  return dot / (Math.sqrt(na) * Math.sqrt(nb) || 1);
+}
+async function embutir(textos) {
+  const { baseUrl, key } = S.cfg.prov.oa;
+  if (!key) throw new Error('Embeddings exigem a chave do provedor aberto.');
+  const r = await fetch(baseUrl.replace(/\/+$/, '') + '/embeddings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+    body: JSON.stringify({ model: S.cfg.modelos.embed || 'BAAI/bge-m3', input: textos })
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + (await r.text()).slice(0, 160));
+  const j = await r.json();
+  return (j.data || []).map(d => d.embedding);
+}
+function vecCache(r) {
+  const e = S.vcache[r.id];
+  if (e && e.at === r.atualizadoEm) return e;
+  const v = desquantizar(r.vec);
+  let n = 0;
+  for (let i = 0; i < v.length; i++) n += v[i] * v[i];
+  const c = { at: r.atualizadoEm, v, n: Math.sqrt(n) || 1 };
+  S.vcache[r.id] = c;
+  return c;
+}
+async function ragBuscar(consulta) {
+  const ativos = S.kb.filter(r => r.ativo !== false);
+  if (!ativos.length) return [];
+  const lex = scoreLexical(consulta, ativos);
+  const maxLex = Math.max(...lex, 0.0001);
+  let sem = null;
+  const temVec = ativos.some(r => r.vec);
+  if (temVec && S.cfg.prov.oa.key && !ehArtifact()) {
+    try {
+      const [qv] = await embutir([consulta.slice(0, 1500)]);
+      let qn = 0;
+      for (let i = 0; i < qv.length; i++) qn += qv[i] * qv[i];
+      qn = Math.sqrt(qn) || 1;
+      sem = ativos.map(r => {
+        if (!r.vec) return 0;
+        const c = vecCache(r);
+        let dot = 0;
+        const nMin = Math.min(qv.length, c.v.length);
+        for (let i = 0; i < nMin; i++) dot += qv[i] * c.v[i];
+        return dot / (qn * c.n);
+      });
+    } catch (e) { sem = null; }
+  }
+  const notas = ativos.map((r, i) => ({ r, n: sem ? 0.55 * sem[i] + 0.45 * (lex[i] / maxLex) : lex[i] }));
+  notas.sort((a, b) => b.n - a.n);
+  const corte = sem ? 0.15 : 0.5;
+  return notas.filter(x => x.n > corte).slice(0, S.cfg.rag.topK || 4).map(x => x.r);
+}
+function blocoContexto(docs) {
+  if (!docs.length) return '';
+  const blocos = docs.map(d => '【' + d.titulo + ' — ' + d.categoria + '】\n' + String(d.conteudo).slice(0, 1200)).join('\n\n');
+  return '\n\n=== CONTEXTO — BASE DE CONHECIMENTO (fonte prioritária; se a informação não estiver aqui e for sensível a erro, diga que precisa confirmar) ===\n' + blocos;
+}
+
+/* ── Chat: renderização e envio ── */
+function agenteAtual() { return S.agentes.find(a => a.id === S.agSel) || S.agentes[0]; }
+function convAtiva() { return S.conversas.find(c => c.id === S.convAtual) || null; }
+function novaConversa() {
+  const ag = agenteAtual();
+  const c = { id: uid(), agenteId: ag.id, titulo: 'Nova conversa', msgs: [], ts: agora() };
+  S.conversas.push(c); S.convAtual = c.id;
+  renderSelConversas(); renderMsgs(); salvarConversas();
+}
+function renderSelAgentes() {
+  const sel = $('selAgente');
+  const filtro = $('selSistema') ? $('selSistema').value : 'todos';
+  let lista = S.agentes;
+  if (filtro !== 'todos') lista = S.agentes.filter(a => (a.sistema || 'gestao') === filtro);
+  if (!lista.length) lista = S.agentes;
+  sel.innerHTML = lista.map(a => '<option value="' + esc(a.id) + '">' + esc(a.nome) + (a.tier === 'reforco' ? ' ⚡' : '') + '</option>').join('');
+  if (!S.agSel || !lista.find(a => a.id === S.agSel)) S.agSel = lista[0] ? lista[0].id : null;
+  if (S.agSel) sel.value = S.agSel;
+  const ag = agenteAtual();
+  $('agDesc').innerHTML = ag ? esc(ag.papel) + ' <span class="pill ' + ag.tier + '">' + (ag.tier === 'reforco' ? 'Reforço' : 'Base') + '</span> <span class="pill">' + esc(SISTEMAS[ag.sistema] || 'Gestão') + '</span>' : '';
+}
+function renderSelConversas() {
+  const sel = $('selConversa');
+  const doAg = S.conversas.filter(c => c.agenteId === S.agSel).slice().reverse();
+  sel.innerHTML = doAg.length
+    ? doAg.map(c => '<option value="' + esc(c.id) + '">' + esc(c.titulo.slice(0, 42)) + '</option>').join('')
+    : '<option value="">(sem conversas)</option>';
+  if (!doAg.find(c => c.id === S.convAtual)) S.convAtual = doAg.length ? doAg[0].id : null;
+  if (S.convAtual) sel.value = S.convAtual;
+}
+function renderMsgs() {
+  const box = $('chatMsgs');
+  const c = convAtiva();
+  if (!S.vazioEl) S.vazioEl = $('chatVazio');
+  if (!c || !c.msgs.length) {
+    box.innerHTML = '';
+    if (S.vazioEl) { box.appendChild(S.vazioEl); S.vazioEl.style.display = 'block'; }
+    return;
+  }
+  let html = '';
+  for (const m of c.msgs) {
+    if (m.r === 'u') html += '<div class="msg u">' + esc(m.t) + '</div>';
+    else {
+      html += '<div class="msg a' + (m.erro ? ' erro' : '') + '">' + esc(m.t) + '</div>';
+      if (m.carimbo) html += '<div class="carimbo">' + m.carimbo + '</div>';
+    }
+  }
+  box.innerHTML = html;
+  box.scrollTop = box.scrollHeight;
+}
+function carimboDe(rota, inT, outT) {
+  const usd = (inT / 1e6) * (rota.item.inP || 0) + (outT / 1e6) * (rota.item.outP || 0);
+  const nome = rota.demo ? 'claude-sonnet-4-6 (demo)' : rota.modelo;
+  const marca = rota.item.tier === 'reforco' ? ' <span class="rf">⚡reforço</span>' : '';
+  return { html: '✈ ' + esc(nome) + marca + ' · ↑' + inT + ' ↓' + outT + ' tok · ' + fmtUSD(rota.demo ? 0 : usd), usd: rota.demo ? 0 : usd };
+}
+function pedirSenha(modo) {
+  return new Promise(res => {
+    const definir = modo === 'definir';
+    $('mSenhaTitulo').textContent = definir ? 'Definir senha do Reforço' : 'Senha do Reforço';
+    $('mSenhaMsg').textContent = definir ? 'Esta senha será exigida sempre que um agente usar o modelo forte.' : 'Este agente usa o modelo forte. Informe a senha para liberar nesta sessão.';
+    $('blocoConfirma').style.display = definir ? 'block' : 'none';
+    $('inpSenha').value = ''; $('inpSenha2').value = '';
+    $('mSenha').classList.add('on'); $('inpSenha').focus();
+    const fechar = v => { $('mSenha').classList.remove('on'); $('btnSenhaOk').onclick = null; $('btnSenhaCancel').onclick = null; res(v); };
+    $('btnSenhaCancel').onclick = () => fechar(null);
+    $('btnSenhaOk').onclick = async () => {
+      const s = $('inpSenha').value;
+      if (!s) return toast('Informe a senha.', 'erro');
+      if (definir) {
+        if (s !== $('inpSenha2').value) return toast('As senhas não conferem.', 'erro');
+        fechar(await sha256(s));
+      } else {
+        const h = await sha256(s);
+        if (h === S.cfg.senhaHash) { S.desbloqueado = true; fechar(true); }
+        else toast('Senha incorreta.', 'erro');
+      }
+    };
+  });
+}
+async function enviar() {
+  if (S.ocupado) return;
+  const txt = $('inpMsg').value.trim();
+  if (!txt) return;
+  const ag = agenteAtual();
+  if (!ag) return toast('Crie um agente na página Prompt Matriz.', 'erro');
+  if (!convAtiva()) novaConversa();
+  const c = convAtiva();
+
+  if (ag.tier === 'reforco' && S.cfg.senhaHash && !S.desbloqueado) {
+    const ok = await pedirSenha();
+    if (!ok) return;
+  }
+  if (ag.tier === 'reforco' && !S.cfg.senhaHash) toast('Dica: defina a senha do Reforço em Modelos para proteger o custo.', 'sol');
+
+  $('inpMsg').value = '';
+  c.msgs.push({ r: 'u', t: txt, ts: agora() });
+  if (c.titulo === 'Nova conversa') { c.titulo = txt.slice(0, 42); renderSelConversas(); }
+  const bolhaIA = { r: 'a', t: '…', ts: agora() };
+  c.msgs.push(bolhaIA);
+  renderMsgs();
+  S.ocupado = true; $('btnEnviar').disabled = true; $('digitando').classList.add('on');
+
+  try {
+    if (S.cfg.gateway && S.cfg.gateway.usar && S.cfg.gateway.url) {
+      const msgsGw = [];
+      let cargaGw = 0;
+      for (let i = c.msgs.length - 2; i >= 0; i--) {
+        const m = c.msgs[i];
+        cargaGw += m.t.length;
+        if (cargaGw > (S.cfg.maxHistChars || 24000)) break;
+        msgsGw.unshift({ papel: m.r === 'u' ? 'user' : 'assistant', texto: m.t });
+      }
+      const jg = await chamarGateway({ agente: ag.id, mensagens: msgsGw, rag: !!(ag.rag && $('chkRag').checked), tier: ag.tier });
+      bolhaIA.t = jg.texto;
+      const inG = jg.tokens ? jg.tokens.in : 0, outG = jg.tokens ? jg.tokens.out : 0;
+      bolhaIA.carimbo = '\ud83e\udde0 ' + esc(jg.modelo || 'c\u00e9rebro') + (ag.tier === 'reforco' ? ' <span class="rf">\u26a1refor\u00e7o</span>' : '') + ' \u00b7 \u2191' + inG + ' \u2193' + outG + ' tok \u00b7 ' + fmtUSD(jg.custoUSD || 0) + (jg.docs && jg.docs.length ? ' \u00b7 \ud83d\udcda' + jg.docs.length : '') + ' \u00b7 gw';
+      S.uso.push({ ts: agora(), modelo: 'gw:' + (jg.modelo || ''), inT: inG, outT: outG, usd: jg.custoUSD || 0 });
+      await salvarUso();
+      atualizarStatusVoo();
+    } else {
+    const rota = rotaPorTier(ag.tier);
+    let sistema = ag.prompt.replace(/\{\{EMPRESA\}\}/gi, S.cfg.branding.empresa || 'agência');
+    let docs = [];
+    if (ag.rag && $('chkRag').checked) {
+      docs = await ragBuscar(txt);
+      sistema += blocoContexto(docs);
+    }
+    const hist = [];
+    let carga = 0;
+    for (let i = c.msgs.length - 2; i >= 0; i--) {
+      const m = c.msgs[i];
+      carga += m.t.length;
+      if (carga > (S.cfg.maxHistChars || 24000)) break;
+      hist.unshift({ role: m.r === 'u' ? 'user' : 'assistant', content: m.t });
+    }
+    const maxTok = ag.tier === 'reforco' ? 2048 : 1024;
+    let res;
+    const caixaMsgs = $('chatMsgs');
+    const alvoVivo = caixaMsgs.lastElementChild;
+    let rafVivo = 0;
+    const aoVivo = t => {
+      bolhaIA.t = t;
+      if (rafVivo) return;
+      rafVivo = requestAnimationFrame(() => {
+        rafVivo = 0;
+        if (alvoVivo && alvoVivo.isConnected && alvoVivo.classList.contains('msg')) {
+          alvoVivo.textContent = bolhaIA.t;
+          caixaMsgs.scrollTop = caixaMsgs.scrollHeight;
+        } else renderMsgs();
+      });
+    };
+    try {
+      if (rota.prov === 'an') res = await chamarAnthropic({ modelo: rota.modelo, sistema, msgs: hist, maxTok, demo: rota.demo, onDelta: aoVivo });
+      else res = await chamarOA({ modelo: rota.modelo, msgs: [{ role: 'system', content: sistema }, ...hist], temp: ag.temp ?? 0.7, maxTok, onDelta: aoVivo });
+    } catch (e1) {
+      if (rota.prov === 'oa' && ehArtifact()) {
+        toast('Na pré-visualização só a Anthropic (demo) tem rede. Publique no GitHub Pages para usar seu provedor.', 'sol');
+        rota.prov = 'an'; rota.demo = true; rota.modelo = 'claude-sonnet-4-6';
+        res = await chamarAnthropic({ modelo: rota.modelo, sistema, msgs: hist, maxTok, demo: true });
+      } else throw e1;
+    }
+    bolhaIA.t = res.texto;
+    const inT = res.inT ?? estTokens(sistema + JSON.stringify(hist));
+    const outT = res.outT ?? estTokens(res.texto);
+    const car = carimboDe(rota, inT, outT);
+    bolhaIA.carimbo = car.html + (docs.length ? ' · 📚' + docs.length : '');
+    S.uso.push({ ts: agora(), modelo: rota.demo ? 'demo' : rota.modelo, inT, outT, usd: car.usd });
+    await salvarUso();
+    atualizarStatusVoo();
+    }
+  } catch (e) {
+    bolhaIA.t = 'Não consegui responder: ' + (e.message || e) + '\nVerifique a conexão e as chaves na página Modelos.';
+    bolhaIA.erro = true;
+  }
+  S.ocupado = false; $('btnEnviar').disabled = false; $('digitando').classList.remove('on');
+  renderMsgs();
+  await salvarConversas();
+}
+
+/* ── Aprendizado contínuo: extrair → aprovar → base ── */
+async function extrairAprendizados() {
+  const c = convAtiva();
+  if (!c || c.msgs.length < 2) return toast('Converse primeiro — depois extraio o que vale guardar.', 'sol');
+  if (S.ocupado) return;
+  S.ocupado = true; $('btnAprender').disabled = true; $('digitando').classList.add('on');
+  try {
+    const rota = rotaPorTier('base');
+    const transcricao = c.msgs.slice(-30).map(m => (m.r === 'u' ? 'CLIENTE: ' : 'IA: ') + m.t).join('\n').slice(0, 12000);
+    const sistema = 'Você extrai conhecimento REUTILIZÁVEL de conversas de uma agência de turismo, para alimentar uma base de conhecimento. Responda SOMENTE com um array JSON válido, sem comentários nem markdown: [{"titulo":"...","categoria":"...","conteudo":"..."}]. Máximo 5 itens. Inclua apenas fatos, regras, preferências recorrentes ou procedimentos que sirvam para FUTUROS atendimentos (nada de dados pessoais de um cliente específico). Se não houver nada reutilizável, responda [].';
+    let res;
+    if (rota.prov === 'an') res = await chamarAnthropic({ modelo: rota.modelo, sistema, msgs: [{ role: 'user', content: transcricao }], maxTok: 1000, demo: rota.demo });
+    else res = await chamarOA({ modelo: rota.modelo, msgs: [{ role: 'system', content: sistema }, { role: 'user', content: transcricao }], temp: 0.2, maxTok: 1000 });
+    let bruto = res.texto.trim().replace(/^```[a-z]*\n?/i, '').replace(/```\s*$/, '');
+    const ini = bruto.indexOf('['), fim = bruto.lastIndexOf(']');
+    if (ini >= 0 && fim > ini) bruto = bruto.slice(ini, fim + 1);
+    let lista = [];
+    try { lista = JSON.parse(bruto); } catch (e) { lista = []; }
+    if (!Array.isArray(lista)) lista = [];
+    lista = lista.filter(x => x && x.titulo && x.conteudo).slice(0, 5);
+    if (!lista.length) { toast('Nada novo para guardar desta conversa.'); }
+    else {
+      for (const l of lista) S.pend.push({ id: uid(), titulo: String(l.titulo).slice(0, 120), categoria: String(l.categoria || 'Aprendizado').slice(0, 60), conteudo: String(l.conteudo).slice(0, 3000), origem: c.titulo, ts: agora(), status: 'pendente' });
+      await salvarPend();
+      toast(lista.length + ' aprendizado(s) aguardando aprovação em Conhecimento.', 'sol');
+      atualizarSeloPend();
+    }
+  } catch (e) { toast('Falha ao extrair: ' + (e.message || e), 'erro'); }
+  S.ocupado = false; $('btnAprender').disabled = false; $('digitando').classList.remove('on');
+}
+function atualizarSeloPend() {
+  const n = S.pend.filter(p => p.status === 'pendente').length;
+  $('seloPend').style.display = n ? 'inline-block' : 'none';
+  $('seloPend').textContent = n;
+}
+
+/* ── Status de voo (chip do topo) ── */
+function atualizarStatusVoo() {
+  const base = itemCatalogo(S.cfg.modelos.base);
+  $('statusModelo').textContent = (base ? base.label : S.cfg.modelos.base) + ' · base';
+  const ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
+  const doMes = S.uso.filter(u => new Date(u.ts) >= ini);
+  const usd = doMes.reduce((s, u) => s + (u.usd || 0), 0);
+  $('statusCusto').textContent = 'mês: ' + fmtUSD(usd) + ' ≈ R$ ' + (usd * (S.cfg.cambio || 5.5)).toFixed(2);
+}
+
+/* ── Confirmação em dois cliques (funciona em qualquer ambiente) ── */
+const _conf = {};
+function confirmar2(chave, msg) {
+  const t = Date.now();
+  if (_conf[chave] && t - _conf[chave] < 4000) { delete _conf[chave]; return true; }
+  _conf[chave] = t;
+  toast(msg + ' — clique novamente para confirmar.', 'sol');
+  return false;
+}
+
+/* ── Portão 02 · Prompt Matriz ── */
+function renderMatriz() {
+  const lc = $('listaAgentes');
+  const ordem = ['gestao', 'guid', 'marketing', 'console'];
+  let htmlAg = '';
+  for (const sid of ordem) {
+    const grupo = S.agentes.filter(a => (a.sistema || 'gestao') === sid);
+    if (!grupo.length) continue;
+    htmlAg += '<div style="grid-column:1/-1;font-family:var(--fonte-m);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--grafite);margin-top:6px">✈ ' + SISTEMAS[sid] + ' · ' + grupo.length + '</div>';
+    htmlAg += grupo.map(a =>
+      '<div class="card-ag' + (a.id === S.agEdit ? ' sel' : '') + '" data-id="' + esc(a.id) + '">' +
+        '<div class="nm">' + esc(a.nome) + '</div>' +
+        '<div class="pp">' + esc(a.papel) + '</div>' +
+        '<div class="rodape"><span class="pill ' + a.tier + '">' + (a.tier === 'reforco' ? '⚡ Reforço' : 'Base') + '</span>' +
+        '<span class="pill">' + esc(PUBLICOS[a.publico] || 'Interno') + '</span>' +
+        (a.rag ? '<span class="pill">📚</span>' : '') + '</div>' +
+      '</div>').join('');
+  }
+  lc.innerHTML = htmlAg;
+  const ag = S.agentes.find(a => a.id === S.agEdit);
+  $('edPainel').style.display = ag ? 'block' : 'none';
+  if (!ag) return;
+  $('edAgTitulo').textContent = 'Editar · ' + ag.nome;
+  $('edAgNome').value = ag.nome;
+  $('edAgPapel').value = ag.papel;
+  $('edAgTier').value = ag.tier;
+  $('edAgTemp').value = ag.temp ?? 0.7;
+  $('edAgRag').checked = !!ag.rag;
+  $('edAgSis').value = ag.sistema || 'gestao';
+  $('edAgPub').value = ag.publico || 'interno';
+  $('edAgPrompt').value = ag.prompt;
+  const vs = (ag.versoes || []).slice().reverse();
+  $('selVersoes').innerHTML = vs.length
+    ? vs.map(v => '<option value="' + esc(v.ts) + '">' + new Date(v.ts).toLocaleString('pt-BR') + '</option>').join('')
+    : '<option value="">(sem versões anteriores)</option>';
+}
+
+/* ── Portão 03 · Conhecimento ── */
+function renderKb() {
+  const pend = S.pend.filter(p => p.status === 'pendente');
+  $('cardPend').style.display = pend.length ? 'block' : 'none';
+  $('kbPend').innerHTML = pend.map(p =>
+    '<div class="reg pendente"><div class="cab"><span class="tt">' + esc(p.titulo) + '</span>' +
+    '<span class="pill">' + esc(p.categoria) + '</span><span class="pill pend">de: ' + esc(p.origem || 'conversa') + '</span>' +
+    '<button class="btn mini fixo" data-act="aprovar" data-id="' + p.id + '">Aprovar</button>' +
+    '<button class="btn mini fantasma fixo" data-act="rejeitar" data-id="' + p.id + '">Rejeitar</button></div>' +
+    '<div class="tx">' + esc(p.conteudo) + '</div></div>').join('');
+
+  const bytes = S.kbBytes || 0, mb = bytes / 1048576;
+  const med = $('kbMedidor');
+  med.textContent = S.kb.length + ' registros · ~' + mb.toFixed(2) + ' MB';
+  med.className = 'medidor' + (mb > 8 ? ' critico' : mb > 4 ? ' alerta' : '');
+
+  const q = normTxt($('kbBusca').value);
+  let regs = S.kb;
+  if (q) regs = regs.filter(r =>
+    normTxt(r.titulo).includes(q) || normTxt(r.categoria).includes(q) ||
+    normTxt((r.tags || []).join(' ')).includes(q) || normTxt(r.conteudo).includes(q));
+  const TOPO = 100;
+  let html = regs.slice(0, TOPO).map(r =>
+    '<div class="reg"' + (r.ativo === false ? ' style="opacity:.55"' : '') + '><div class="cab"><span class="tt">' + esc(r.titulo) + '</span>' +
+    '<span class="pill">' + esc(r.categoria) + '</span>' +
+    (r.vec ? '<span class="pill base">◈ semântico</span>' : '') +
+    (r.ativo === false ? '<span class="pill pend">inativo</span>' : '') +
+    '<button class="btn mini fantasma fixo" data-act="edit" data-id="' + r.id + '">Editar</button>' +
+    '<button class="btn mini fantasma fixo" data-act="toggle" data-id="' + r.id + '">' + (r.ativo === false ? 'Ativar' : 'Desativar') + '</button>' +
+    '<button class="btn mini perigo fixo" data-act="del" data-id="' + r.id + '">Excluir</button></div>' +
+    '<div class="tx">' + esc(r.conteudo) + '</div></div>').join('');
+  if (regs.length > TOPO) html += '<p class="dica">Mostrando ' + TOPO + ' de ' + regs.length + ' — refine a busca.</p>';
+  if (!regs.length) html = '<p class="dica">Nenhum registro. Crie um novo ou importe seu JSON — esta base é o cérebro dos agentes.</p>';
+  $('kbLista').innerHTML = html;
+}
+async function acaoPend(act, id) {
+  const p = S.pend.find(x => x.id === id);
+  if (!p) return;
+  if (act === 'aprovar') {
+    const t = agora();
+    S.kb.push({ id: uid(), empresaId: 'default', titulo: p.titulo, categoria: p.categoria || 'Aprendizado', tags: ['aprendizado'], conteudo: p.conteudo, fonte: 'aprendizado · ' + (p.origem || 'conversa'), ativo: true, criadoEm: t, atualizadoEm: t, vec: null });
+    S.pend = S.pend.filter(x => x.id !== id);
+    await salvarKb(); await salvarPend();
+    toast('Aprendizado incorporado — a IA já usa na próxima resposta.');
+  } else {
+    S.pend = S.pend.filter(x => x.id !== id);
+    await salvarPend();
+  }
+  atualizarSeloPend(); renderKb();
+}
+async function acaoReg(act, id) {
+  const r = S.kb.find(x => x.id === id);
+  if (!r) return;
+  if (act === 'edit') return abrirRegistro(id);
+  if (act === 'toggle') {
+    r.ativo = r.ativo === false; r.atualizadoEm = agora();
+    await salvarKb(); renderKb(); return;
+  }
+  if (act === 'del') {
+    if (!confirmar2('reg' + id, 'Excluir "' + r.titulo.slice(0, 30) + '"')) return;
+    S.kb = S.kb.filter(x => x.id !== id);
+    await salvarKb(); renderKb();
+  }
+}
+function abrirRegistro(id) {
+  S.regEdit = id || null;
+  const r = id ? S.kb.find(x => x.id === id) : null;
+  $('mRegHead').textContent = r ? 'Editar registro' : 'Novo registro';
+  $('mRegTitulo').value = r ? r.titulo : '';
+  $('mRegCat').value = r ? r.categoria : '';
+  $('mRegTags').value = r ? (r.tags || []).join(', ') : '';
+  $('mRegConteudo').value = r ? r.conteudo : '';
+  $('mReg').classList.add('on');
+  $('mRegTitulo').focus();
+}
+async function salvarRegistro() {
+  const titulo = $('mRegTitulo').value.trim(), conteudo = $('mRegConteudo').value.trim();
+  if (!titulo || !conteudo) return toast('Título e conteúdo são obrigatórios.', 'erro');
+  const cat = $('mRegCat').value.trim() || 'Geral';
+  const tags = $('mRegTags').value.split(',').map(s => s.trim()).filter(Boolean);
+  const t = agora();
+  if (S.regEdit) {
+    const r = S.kb.find(x => x.id === S.regEdit);
+    if (r) {
+      if (r.conteudo !== conteudo || r.titulo !== titulo) r.vec = null;
+      r.titulo = titulo; r.categoria = cat; r.tags = tags; r.conteudo = conteudo; r.atualizadoEm = t;
+    }
+  } else {
+    S.kb.push({ id: uid(), empresaId: 'default', titulo, categoria: cat, tags, conteudo, fonte: 'manual', ativo: true, criadoEm: t, atualizadoEm: t, vec: null });
+  }
+  await salvarKb();
+  $('mReg').classList.remove('on');
+  renderKb();
+  toast('Registro salvo.');
+}
+function mapearRegistro(rec, compact, t) {
+  if (!rec || typeof rec !== 'object') return null;
+  const titulo = rec.titulo || rec.title || rec.nome || rec.name || rec.slug || '';
+  let conteudo = rec.conteudo || rec.content || rec.descricao || rec.description || rec.texto || rec.text || rec.resumo || rec.summary || '';
+  if (!conteudo) { const c = Object.assign({}, rec); delete c.id; conteudo = JSON.stringify(c); }
+  conteudo = String(conteudo);
+  if (compact) conteudo = conteudo.slice(0, 2000);
+  if (!titulo && !conteudo) return null;
+  let tags = rec.tags || [];
+  if (typeof tags === 'string') tags = tags.split(',').map(s => s.trim()).filter(Boolean);
+  if (!Array.isArray(tags)) tags = [];
+  return {
+    id: uid(), empresaId: 'default',
+    titulo: String(titulo || 'Sem título').slice(0, 160),
+    categoria: String(rec.categoria || rec.category || rec.tipo || rec.type || rec.park || rec.area || 'Geral').slice(0, 80),
+    tags, conteudo, fonte: 'importado', ativo: true, criadoEm: t, atualizadoEm: t, vec: null
+  };
+}
+async function importarKbArquivo(f) {
+  try {
+    const j = JSON.parse(await f.text());
+    let arr = Array.isArray(j) ? j : (j.registros || j.records || j.kb || j.items || j.data || null);
+    if (!Array.isArray(arr)) throw new Error('formato não reconhecido — esperava um array de registros.');
+    const compact = $('kbChkCompact').checked;
+    const t = agora();
+    let n = 0;
+    for (const rec of arr) {
+      const m = mapearRegistro(rec, compact, t);
+      if (m) { S.kb.push(m); n++; }
+    }
+    await salvarKb();
+    renderKb();
+    toast('Importados ' + n + ' registros' + (compact ? ' (modo compacto).' : '.'));
+  } catch (e) { toast('Falha na importação: ' + (e.message || e), 'erro'); }
+}
+async function indexarSemantica() {
+  if (ehArtifact()) return toast('Indexação semântica precisa de rede externa — publique no GitHub Pages primeiro.', 'sol');
+  if (!S.cfg.prov.oa.key) return toast('Configure a chave do provedor aberto em Modelos.', 'erro');
+  const alvo = S.kb.filter(r => !r.vec && r.ativo !== false);
+  if (!alvo.length) return toast('Tudo indexado — nada a fazer.');
+  const btn = $('btnKbIndexar');
+  btn.disabled = true;
+  let feito = 0;
+  try {
+    for (let i = 0; i < alvo.length; i += 24) {
+      const lote = alvo.slice(i, i + 24);
+      const vets = await embutir(lote.map(r => (r.titulo + '\n' + r.conteudo).slice(0, 2000)));
+      lote.forEach((r, k) => { if (vets[k]) { r.vec = quantizar(vets[k]); feito++; } });
+      btn.textContent = 'Indexando ' + Math.min(i + 24, alvo.length) + '/' + alvo.length + '…';
+      await salvarKb();
+    }
+    toast(feito + ' registros indexados — a busca agora combina significado e palavras-chave.');
+  } catch (e) { toast('Indexação interrompida: ' + (e.message || e) + ' (' + feito + ' concluídos)', 'erro'); }
+  btn.disabled = false;
+  btn.textContent = 'Indexar semântica';
+  renderKb();
+}
+
+/* ── Portão 04 · Modelos & Operação ── */
+function opcoesModelo(tier, atual) {
+  const itens = S.cfg.catalogo.filter(m => m.tier === tier);
+  let html = itens.map(m => '<option value="' + esc(m.id) + '">' + esc(m.label) + ' — ' + esc(m.id) + '</option>').join('');
+  if (atual && !itens.find(m => m.id === atual)) html += '<option value="' + esc(atual) + '">' + esc(atual) + ' (fora do catálogo)</option>';
+  return html;
+}
+function renderCatalogo() {
+  $('catLista').innerHTML = S.cfg.catalogo.map((m, i) =>
+    '<tr class="cat-lin" data-i="' + i + '">' +
+    '<td><input type="text" class="c-label" value="' + esc(m.label) + '"></td>' +
+    '<td><input type="text" class="c-id mono" value="' + esc(m.id) + '"></td>' +
+    '<td><select class="c-prov"><option value="oa"' + (m.prov === 'oa' ? ' selected' : '') + '>Aberto</option><option value="an"' + (m.prov === 'an' ? ' selected' : '') + '>Anthropic</option></select></td>' +
+    '<td><select class="c-tier"><option value="base"' + (m.tier === 'base' ? ' selected' : '') + '>Base</option><option value="reforco"' + (m.tier === 'reforco' ? ' selected' : '') + '>Reforço</option></select></td>' +
+    '<td><input type="number" class="c-in" step="0.01" min="0" value="' + (m.inP ?? 0) + '"></td>' +
+    '<td><input type="number" class="c-out" step="0.01" min="0" value="' + (m.outP ?? 0) + '"></td>' +
+    '<td><button class="btn mini perigo" data-del="' + i + '">✕</button></td></tr>').join('');
+}
+function lerCatalogoDom() {
+  return Array.from(document.querySelectorAll('#catLista .cat-lin')).map(tr => ({
+    label: tr.querySelector('.c-label').value.trim() || 'Modelo',
+    id: tr.querySelector('.c-id').value.trim(),
+    prov: tr.querySelector('.c-prov').value,
+    tier: tr.querySelector('.c-tier').value,
+    inP: parseFloat(tr.querySelector('.c-in').value) || 0,
+    outP: parseFloat(tr.querySelector('.c-out').value) || 0
+  }));
+}
+function renderCustos() {
+  const ini = new Date(); ini.setDate(1); ini.setHours(0, 0, 0, 0);
+  const doMes = S.uso.filter(u => new Date(u.ts) >= ini);
+  const total = doMes.reduce((s, u) => s + (u.usd || 0), 0);
+  $('custoTotal').textContent = fmtUSD(total) + ' ≈ R$ ' + (total * (S.cfg.cambio || 5.5)).toFixed(2) + ' · ' + doMes.length + ' respostas no mês';
+  const por = {};
+  for (const u of doMes) {
+    por[u.modelo] = por[u.modelo] || { n: 0, t: 0, usd: 0 };
+    por[u.modelo].n++; por[u.modelo].t += (u.inT || 0) + (u.outT || 0); por[u.modelo].usd += u.usd || 0;
+  }
+  $('custoLista').innerHTML = Object.entries(por).map(([m, v]) =>
+    '<div class="medidor">' + esc(m) + ' — ' + v.n + ' resp · ' + v.t.toLocaleString('pt-BR') + ' tok · ' + fmtUSD(v.usd) + '</div>').join('')
+    || '<div class="medidor">Sem uso neste mês.</div>';
+}
+function renderModelos() {
+  const c = S.cfg;
+  $('oaBase').value = c.prov.oa.baseUrl;
+  $('oaKey').value = c.prov.oa.key;
+  $('anKey').value = c.prov.an.key;
+  $('selModBase').innerHTML = opcoesModelo('base', c.modelos.base);
+  $('selModBase').value = c.modelos.base;
+  $('selModReforco').innerHTML = opcoesModelo('reforco', c.modelos.reforco);
+  $('selModReforco').value = c.modelos.reforco;
+  $('inpModEmbed').value = c.modelos.embed || '';
+  $('inpCambio').value = c.cambio;
+  const gw = c.gateway || {};
+  $('chkGateway').checked = !!gw.usar;
+  $('gwUrl').value = gw.url || '';
+  $('gwToken').value = gw.token || '';
+  $('senhaEstado').textContent = c.senhaHash ? '✅ Senha definida — exigida uma vez por sessão.' : '⚠️ Sem senha: o Reforço responde sem proteção de custo.';
+  renderCatalogo();
+  renderCustos();
+  $('wlProduto').value = c.branding.produto;
+  $('wlEmpresa').value = c.branding.empresa;
+  $('wlLogo').value = c.branding.logo;
+  $('wlCor').value = c.branding.cor;
+  $('sobreApp').textContent = (c.branding.produto || 'TurIA') + ' v' + VERSAO + ' · armazenamento: ' + Store.modo + ' · ' + S.kb.length + ' registros · ' + S.agentes.length + ' agentes';
+}
+function guardarCamposModelos() {
+  const c = S.cfg;
+  c.prov.oa.baseUrl = $('oaBase').value.trim() || 'https://api.deepinfra.com/v1/openai';
+  c.prov.oa.key = $('oaKey').value.trim();
+  c.prov.an.key = $('anKey').value.trim();
+  if ($('selModBase').value) c.modelos.base = $('selModBase').value;
+  if ($('selModReforco').value) c.modelos.reforco = $('selModReforco').value;
+  c.modelos.embed = $('inpModEmbed').value.trim() || 'BAAI/bge-m3';
+  c.cambio = parseFloat($('inpCambio').value) || 5.5;
+  c.gateway = c.gateway || {};
+  c.gateway.usar = $('chkGateway').checked;
+  c.gateway.url = $('gwUrl').value.trim();
+  c.gateway.token = $('gwToken').value.trim();
+  salvarCfg();
+  atualizarStatusVoo();
+}
+async function testarConexao(qual) {
+  guardarCamposModelos();
+  try {
+    if (qual === 'oa') {
+      const r = await chamarOA({ modelo: S.cfg.modelos.base, msgs: [{ role: 'user', content: 'Responda apenas: OK' }], temp: 0, maxTok: 8 });
+      toast('Provedor aberto respondeu: ' + r.texto.slice(0, 40));
+    } else {
+      const demo = ehArtifact() && !S.cfg.prov.an.key;
+      const r = await chamarAnthropic({ modelo: 'claude-sonnet-4-6', sistema: 'Responda apenas: OK', msgs: [{ role: 'user', content: 'ping' }], maxTok: 8, demo });
+      toast('Anthropic respondeu: ' + r.texto.slice(0, 40) + (demo ? ' (demo)' : ''));
+    }
+  } catch (e) { toast('Falha no teste: ' + (e.message || e), 'erro'); }
+}
+function exportarBackup() {
+  const inc = $('chkIncKeys').checked;
+  const cfg = JSON.parse(JSON.stringify(S.cfg));
+  if (!inc) { cfg.prov.oa.key = ''; cfg.prov.an.key = ''; }
+  baixarJSON({
+    meta: { app: S.cfg.branding.produto || 'TurIA', versao: VERSAO, ts: agora() },
+    cfg, agentes: S.agentes, kb: S.kb, pend: S.pend, uso: S.uso
+  }, 'turia-backup-' + new Date().toISOString().slice(0, 10) + '.json');
+  toast('Backup exportado' + (inc ? ' (com chaves — guarde em local seguro).' : ' (sem chaves de API).'));
+}
+async function restaurarBackup(f) {
+  try {
+    const j = JSON.parse(await f.text());
+    if (!j || (!j.agentes && !j.kb && !j.cfg)) throw new Error('o arquivo não parece um backup deste app.');
+    if (j.cfg) {
+      const p = cfgPadrao();
+      S.cfg = Object.assign({}, p, j.cfg, {
+        prov: { oa: Object.assign({}, p.prov.oa, (j.cfg.prov && j.cfg.prov.oa) || {}), an: Object.assign({}, p.prov.an, (j.cfg.prov && j.cfg.prov.an) || {}) },
+        branding: Object.assign({}, p.branding, j.cfg.branding || {}),
+        modelos: Object.assign({}, p.modelos, j.cfg.modelos || {}),
+        rag: Object.assign({}, p.rag, j.cfg.rag || {})
+      });
+    }
+    if (Array.isArray(j.agentes) && j.agentes.length) S.agentes = j.agentes;
+    if (Array.isArray(j.kb)) S.kb = j.kb;
+    if (Array.isArray(j.pend)) S.pend = j.pend;
+    if (Array.isArray(j.uso)) S.uso = j.uso;
+    await salvarCfg(); await salvarAgentes(); await salvarKb(); await salvarPend(); await salvarUso();
+    S.agSel = null; S.convAtual = null; S.agEdit = null;
+    aplicarBranding(); renderSelAgentes(); renderSelConversas(); renderMsgs();
+    atualizarSeloPend(); atualizarStatusVoo(); renderModelos();
+    toast('Backup restaurado com sucesso.');
+  } catch (e) { toast('Falha ao restaurar: ' + (e.message || e), 'erro'); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Módulo CÉREBRO (Console v3) — conexão ao Firebase próprio do desenrola-turia
+   Lê/escreve ia/* : config, provedores, roteamento, agentes, conhecimento,
+   telemetria e propostas. Também abriga a porta de entrada do KOS e o motor
+   de propostas de troca de modelo (o "cérebro consciente").
+   ═══════════════════════════════════════════════════════════════════ */
+const Cerebro = {
+  app: null, db: null, conectado: false, cfg: null,
+
+  _obterApp(firebaseConfig) {
+    try { return (firebase.apps && firebase.apps.some(function (a) { return a.name === 'turia'; })) ? firebase.app('turia') : firebase.initializeApp(firebaseConfig, 'turia'); }
+    catch (e) { return firebase.initializeApp(firebaseConfig, 'turia_' + Date.now()); }
+  },
+  async conectar(firebaseConfig, email, senha) {
+    if (typeof firebase === 'undefined') throw new Error('SDK do Firebase não carregou (verifique a conexão).');
+    this.app = this._obterApp(firebaseConfig);
+    const auth = firebase.auth(this.app);
+    if (email && senha) { await auth.signInWithEmailAndPassword(email, senha); }
+    else if (!auth.currentUser) { throw new Error('Faça login com o e-mail e a senha do gestor.'); }
+    this.db = firebase.database(this.app);
+    await this.db.ref('ia/config/ativo').once('value'); // exige auth pelas regras
+    this.conectado = true;
+    return true;
+  },
+
+  ref(caminho) { return this.db.ref('ia/' + caminho); },
+  async ler(caminho) { const s = await this.ref(caminho).once('value'); return s.val(); },
+  async gravar(caminho, valor) { await this.ref(caminho).set(valor); },
+  async atualizar(caminho, patch) { await this.ref(caminho).update(patch); },
+  async remover(caminho) { await this.ref(caminho).remove(); },
+
+  async lerConfig() { this.cfg = (await this.ler('config')) || {}; return this.cfg; },
+
+  // ── Provedores ──
+  async listarProvedores() { return (await this.ler('config/provedores')) || {}; },
+  async salvarProvedor(apelido, tipo, urlBase) { await this.gravar('config/provedores/' + apelido, { tipo: tipo, urlBase: urlBase || '' }); },
+  async excluirProvedor(apelido) { await this.remover('config/provedores/' + apelido); },
+
+  // ── Roteamento / preços ──
+  async lerRoteamento() { return (await this.ler('config/roteamento')) || { base: [], reforco: [] }; },
+  async salvarRoteamento(tier, lista) { await this.gravar('config/roteamento/' + tier, lista); },
+  async lerPrecos() { return (await this.ler('config/precos')) || {}; },
+  async salvarPreco(chave, inP, outP) { await this.gravar('config/precos/' + chave, { inP: Number(inP) || 0, outP: Number(outP) || 0 }); },
+
+  // ── Conhecimento (porta de entrada do KOS) ──
+  async importarConhecimento(registros, escopo) {
+    escopo = escopo || 'global';
+    let n = 0;
+    for (const r of registros) {
+      if (!r || !r.conteudo) continue;
+      const id = String(r.id || ('kb' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)));
+      await this.gravar('conhecimento/' + escopo + '/' + id, {
+        titulo: String(r.titulo || r.title || 'Sem título').slice(0, 160),
+        categoria: String(r.categoria || r.category || 'Geral').slice(0, 80),
+        tags: Array.isArray(r.tags) ? r.tags.slice(0, 12) : [],
+        conteudo: String(r.conteudo || r.content).slice(0, 4000),
+        fonte: String(r.fonte || 'KOS'), ativo: r.ativo !== false, em: Date.now()
+      });
+      n++;
+    }
+    return n;
+  },
+  async contarConhecimento(escopo) { const o = (await this.ler('conhecimento/' + (escopo || 'global'))) || {}; return Object.keys(o).length; },
+
+  // ── Telemetria → estatísticas por agente/provedor ──
+  async lerTelemetriaMes(aaaamm) {
+    const o = (await this.ler('telemetria/' + aaaamm)) || {};
+    return Object.keys(o).map(function (k) { return o[k]; }).filter(function (r) { return r && r.ts; });
+  },
+  estatisticas(regs) {
+    // agrega por agente e por "provedor:modelo"
+    const porAgente = {}, porModelo = {};
+    for (const r of regs) {
+      const ag = r.agente || '?';
+      porAgente[ag] = porAgente[ag] || { n: 0, erros: 0, somaLat: 0, somaCusto: 0, modelos: {} };
+      const a = porAgente[ag];
+      a.n++;
+      if (r.ok === false || r.erro) a.erros++;
+      a.somaLat += r.latenciaMs || 0;
+      a.somaCusto += r.custoUSD || 0;
+      if (r.modelo) { const chave = (r.provedor || '?') + ':' + r.modelo; a.modelos[chave] = (a.modelos[chave] || 0) + 1; }
+      if (r.provedor && r.modelo) {
+        const mk = r.provedor + ':' + r.modelo;
+        porModelo[mk] = porModelo[mk] || { n: 0, erros: 0, somaLat: 0, somaCusto: 0 };
+        porModelo[mk].n++;
+        if (r.ok === false || r.erro) porModelo[mk].erros++;
+        porModelo[mk].somaLat += r.latenciaMs || 0;
+        porModelo[mk].somaCusto += r.custoUSD || 0;
+      }
+    }
+    const fmtAg = {};
+    Object.keys(porAgente).forEach(function (k) {
+      const a = porAgente[k];
+      fmtAg[k] = { n: a.n, taxaErro: a.n ? a.erros / a.n : 0, latMedia: a.n ? Math.round(a.somaLat / a.n) : 0, custoMedio: a.n ? a.somaCusto / a.n : 0, modelos: a.modelos };
+    });
+    const fmtMod = {};
+    Object.keys(porModelo).forEach(function (k) {
+      const m = porModelo[k];
+      fmtMod[k] = { n: m.n, taxaErro: m.n ? m.erros / m.n : 0, latMedia: m.n ? Math.round(m.somaLat / m.n) : 0, custoMedio: m.n ? m.somaCusto / m.n : 0 };
+    });
+    return { porAgente: fmtAg, porModelo: fmtMod, total: regs.length };
+  },
+
+  // ── Cérebro consciente: gera propostas de troca (regras + evidência) ──
+  // NUNCA aplica sozinho — só cria propostas para o gestor aprovar.
+  gerarPropostas(stats, roteamento, agentes) {
+    const props = [];
+    const modelos = stats.porModelo;
+    // menor custo médio entre modelos com uso saudável (>=5 chamadas, erro < 10%)
+    const saudaveis = Object.keys(modelos).filter(function (k) { return modelos[k].n >= 5 && modelos[k].taxaErro < 0.10; });
+    const maisBarato = saudaveis.slice().sort(function (a, b) { return modelos[a].custoMedio - modelos[b].custoMedio; })[0];
+    const maisRapido = saudaveis.slice().sort(function (a, b) { return modelos[a].latMedia - modelos[b].latMedia; })[0];
+
+    Object.keys(stats.porAgente).forEach(function (agId) {
+      const a = stats.porAgente[agId];
+      if (a.n < 5) return; // amostra pequena, não propõe
+      const ag = (agentes && agentes[agId]) || {};
+      const tier = ag.tier === 'reforco' ? 'reforco' : 'base';
+      const rota = (roteamento[tier] || []);
+      const primario = rota[0] || '';
+      const mPrim = modelos[primario];
+
+      // Regra 1 — primário com muitos erros: propor promover o fallback mais usado com sucesso
+      if (mPrim && mPrim.taxaErro > 0.15) {
+        const usados = Object.keys(a.modelos).sort(function (x, y) { return a.modelos[y] - a.modelos[x]; });
+        const alt = usados.find(function (u) { return u !== primario && modelos[u] && modelos[u].taxaErro < 0.10; });
+        if (alt) props.push({
+          tarefa: agId, tier: tier, atual: primario, proposto: alt,
+          porque: 'O modelo primário está com taxa de erro alta nesta tarefa.',
+          evidencias: ['erro do primário: ' + (mPrim.taxaErro * 100).toFixed(0) + '% em ' + mPrim.n + ' chamadas', 'alternativa ' + alt + ': ' + (modelos[alt].taxaErro * 100).toFixed(0) + '% de erro'],
+          impacto: 'Menos falhas e menos acionamento de fallback.', risco: 'Qualidade/estilo podem variar entre modelos.',
+          confianca: 0.7
+        });
+      }
+      // Regra 2 — existe modelo saudável bem mais barato (>40%) que o primário
+      if (mPrim && maisBarato && maisBarato !== primario && modelos[maisBarato].custoMedio < mPrim.custoMedio * 0.6 && mPrim.custoMedio > 0) {
+        props.push({
+          tarefa: agId, tier: tier, atual: primario, proposto: maisBarato,
+          porque: 'Há um modelo saudável bem mais barato para o mesmo tipo de tarefa.',
+          evidencias: ['custo médio atual: US$ ' + mPrim.custoMedio.toFixed(5), 'proposto ' + maisBarato + ': US$ ' + modelos[maisBarato].custoMedio.toFixed(5) + ' (' + Math.round((1 - modelos[maisBarato].custoMedio / mPrim.custoMedio) * 100) + '% menor)', 'erro do proposto: ' + (modelos[maisBarato].taxaErro * 100).toFixed(0) + '%'],
+          impacto: 'Redução de custo mantendo saúde de erro.', risco: 'Modelo mais barato pode ter qualidade menor em casos difíceis.',
+          confianca: 0.6
+        });
+      }
+      // Regra 3 — latência do primário alta e há alternativa bem mais rápida
+      if (mPrim && maisRapido && maisRapido !== primario && mPrim.latMedia > 4000 && modelos[maisRapido].latMedia < mPrim.latMedia * 0.6) {
+        props.push({
+          tarefa: agId, tier: tier, atual: primario, proposto: maisRapido,
+          porque: 'A resposta está lenta e há uma opção bem mais rápida.',
+          evidencias: ['latência atual: ' + mPrim.latMedia + 'ms', 'proposto ' + maisRapido + ': ' + modelos[maisRapido].latMedia + 'ms'],
+          impacto: 'Resposta mais rápida ao cliente.', risco: 'Provedor mais rápido pode ter limite de uso menor.',
+          confianca: 0.55
+        });
+      }
+    });
+    // dedup por tarefa+proposto
+    const vistos = {}; const uniq = [];
+    props.forEach(function (p) { const k = p.tarefa + '>' + p.proposto; if (!vistos[k]) { vistos[k] = 1; uniq.push(p); } });
+    return uniq;
+  },
+
+  async salvarProposta(p) {
+    const id = 'p_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    await this.gravar('propostas/' + id, Object.assign({ id: id, status: 'pendente', em: Date.now() }, p));
+    return id;
+  },
+  async listarPropostas() { const o = (await this.ler('propostas')) || {}; return Object.keys(o).map(function (k) { return o[k]; }); },
+  async aplicarProposta(p) {
+    // troca o primário do tier pela opção proposta, preservando o resto como fallback
+    const rota = (await this.lerRoteamento())[p.tier] || [];
+    const nova = [p.proposto].concat(rota.filter(function (x) { return x !== p.proposto; }));
+    await this.salvarRoteamento(p.tier, nova);
+    await this.atualizar('propostas/' + p.id, { status: 'aplicada', aplicadaEm: Date.now() });
+  },
+  async rejeitarProposta(id) { await this.atualizar('propostas/' + id, { status: 'rejeitada' }); }
+};
+
+
+/* ── Página Cérebro: render e eventos ── */
+function renderCerebro() {
+  const con = Cerebro.conectado;
+  $('cbStatus').textContent = con ? '🧠 conectado a ' + (Cerebro.cfg && Cerebro.cfg.empresa ? Cerebro.cfg.empresa : 'desenrola-turia') : 'desconectado';
+  $('cbConectadoArea').style.display = con ? 'block' : 'none';
+  if (con) { renderProvedores(); renderRoteamento(); renderKbMed(); }
+}
+async function renderProvedores() {
+  try {
+    const provs = await Cerebro.listarProvedores();
+    const linhas = Object.keys(provs).map(function (ap) {
+      const p = provs[ap] || {};
+      return '<tr data-ap="' + esc(ap) + '">' +
+        '<td><input type="text" class="cbp-ap mono" value="' + esc(ap) + '" style="padding:6px 8px"></td>' +
+        '<td><select class="cbp-tipo" style="padding:6px 8px"><option value="oa"' + (p.tipo === 'oa' ? ' selected' : '') + '>oa</option><option value="gemini"' + (p.tipo === 'gemini' ? ' selected' : '') + '>gemini</option><option value="anthropic"' + (p.tipo === 'anthropic' ? ' selected' : '') + '>anthropic</option></select></td>' +
+        '<td><input type="text" class="cbp-url mono" value="' + esc(p.urlBase || '') + '" style="padding:6px 8px" placeholder="(gemini/anthropic não usam)"></td>' +
+        '<td><button class="btn mini fixo cbp-save">Salvar</button> <button class="btn mini perigo fixo cbp-del">✕</button></td></tr>';
+    }).join('');
+    $('cbProvLista').innerHTML = linhas || '<tr><td colspan="4" class="dica">Nenhum provedor. Rode o seed ou adicione um.</td></tr>';
+  } catch (e) { toast('Erro lendo provedores: ' + (e.message || e), 'erro'); }
+}
+async function renderRoteamento() {
+  try {
+    const r = await Cerebro.lerRoteamento();
+    $('cbRotaBase').value = (r.base || []).join('\n');
+    $('cbRotaReforco').value = (r.reforco || []).join('\n');
+  } catch (e) { toast('Erro lendo roteamento: ' + (e.message || e), 'erro'); }
+}
+async function renderKbMed() {
+  try { const n = await Cerebro.contarConhecimento('global'); $('cbKbMed').textContent = n + ' registros na memória global'; }
+  catch (e) { $('cbKbMed').textContent = '—'; }
+}
+function txtParaLista(t) { return String(t || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean); }
+
+async function analisarCerebro() {
+  if (!Cerebro.conectado) return;
+  $('cbAnalisar').disabled = true;
+  try {
+    const mes = new Date().toISOString().slice(0, 7);
+    const regs = await Cerebro.lerTelemetriaMes(mes);
+    if (!regs.length) { $('cbStats').textContent = 'Sem telemetria neste mês ainda — use o cérebro algumas vezes e volte.'; $('cbPropostas').innerHTML = ''; return; }
+    const stats = Cerebro.estatisticas(regs);
+    $('cbStats').textContent = stats.total + ' chamadas no mês · ' + Object.keys(stats.porAgente).length + ' agentes · ' + Object.keys(stats.porModelo).length + ' modelos usados';
+    const roteamento = await Cerebro.lerRoteamento();
+    const agentes = (await Cerebro.ler('agentes')) || {};
+    const props = Cerebro.gerarPropostas(stats, roteamento, agentes);
+    if (!props.length) { $('cbPropostas').innerHTML = '<p class="dica">Nenhuma troca recomendada agora — o roteamento atual está saudável. 👍</p>'; return; }
+    $('cbPropostas').innerHTML = props.map(function (p, i) {
+      return '<div class="reg pendente" data-i="' + i + '"><div class="cab"><span class="tt">' + esc(p.tarefa) + ' · trocar <code>' + esc(p.atual) + '</code> → <code>' + esc(p.proposto) + '</code></span>' +
+        '<span class="pill">confiança ' + Math.round(p.confianca * 100) + '%</span>' +
+        '<button class="btn mini fixo cbprop-ap">Aprovar troca</button><button class="btn mini fantasma fixo cbprop-rej">Dispensar</button></div>' +
+        '<div class="tx"><b>' + esc(p.porque) + '</b><br>Evidências: ' + p.evidencias.map(esc).join(' · ') + '<br>Impacto: ' + esc(p.impacto) + ' | Risco: ' + esc(p.risco) + '</div></div>';
+    }).join('');
+    window._propostasCache = props;
+  } catch (e) { toast('Erro na análise: ' + (e.message || e), 'erro'); }
+  finally { $('cbAnalisar').disabled = false; }
+}
+
+/* ── Inicialização e eventos ── */
+async function init() {
+  await Store.init();
+  await carregarTudo();
+  aplicarBranding();
+  S.vazioEl = $('chatVazio');
+  renderSelAgentes(); renderSelConversas(); renderMsgs();
+  atualizarSeloPend(); atualizarStatusVoo();
+
+  const banner = $('bannerAviso');
+  if (Store.modo === 'artifact') {
+    banner.textContent = '🛬 Pré-visualização no Claude: os dados ficam salvos aqui, mas a rede externa é limitada — as respostas usam Anthropic em modo demonstração. Publique no GitHub Pages para conectar seu provedor (DeepInfra, OpenRouter…).';
+    banner.classList.add('on');
+  } else if (Store.modo === 'mem') {
+    banner.textContent = '⚠️ Este ambiente não permite salvar dados — tudo vive só nesta sessão. Exporte um backup antes de sair.';
+    banner.classList.add('on');
+  }
+
+  $('abas').addEventListener('click', e => { const a = e.target.closest('.aba'); if (a) irPara(a.dataset.pg); });
+  $('statusVoo').onclick = () => irPara('modelos');
+
+  // Chat
+  $('selSistema').onchange = () => { S.agSel = null; renderSelAgentes(); renderSelConversas(); renderMsgs(); };
+  $('selAgente').onchange = () => { S.agSel = $('selAgente').value; renderSelAgentes(); renderSelConversas(); renderMsgs(); };
+  $('selConversa').onchange = () => { S.convAtual = $('selConversa').value; renderMsgs(); };
+  $('btnNovaConv').onclick = novaConversa;
+  $('btnExcluirConv').onclick = async () => {
+    const c = convAtiva(); if (!c) return;
+    if (!confirmar2('conv', 'Excluir a conversa "' + c.titulo.slice(0, 24) + '"')) return;
+    S.conversas = S.conversas.filter(x => x.id !== c.id);
+    S.convAtual = null;
+    await salvarConversas();
+    renderSelConversas(); renderMsgs();
+  };
+  $('btnEnviar').onclick = enviar;
+  $('inpMsg').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } });
+  $('btnAprender').onclick = extrairAprendizados;
+
+  // Prompt Matriz
+  $('listaAgentes').addEventListener('click', e => { const c = e.target.closest('.card-ag'); if (c) { S.agEdit = c.dataset.id; renderMatriz(); } });
+  $('btnNovoAg').onclick = async () => {
+    const a = { id: uid(), nome: 'Novo agente', papel: 'Descreva o papel em uma linha.', sistema: 'gestao', publico: 'interno', tier: 'base', rag: true, temp: 0.7, versoes: [], prompt: 'Você é um assistente da {{EMPRESA}}.\n\nPERSONALIDADE:\n- ...\n\nREGRAS:\n- ...\n\nMISSÃO:\n- ...' };
+    S.agentes.push(a); S.agEdit = a.id;
+    await salvarAgentes();
+    renderMatriz(); renderSelAgentes();
+  };
+  $('btnSalvarAg').onclick = async () => {
+    const ag = S.agentes.find(x => x.id === S.agEdit); if (!ag) return;
+    const nome = $('edAgNome').value.trim(), prompt = $('edAgPrompt').value.trim();
+    if (!nome || !prompt) return toast('Nome e Prompt Matriz são obrigatórios.', 'erro');
+    if (prompt !== ag.prompt) {
+      ag.versoes = ag.versoes || [];
+      ag.versoes.push({ ts: agora(), prompt: ag.prompt });
+      if (ag.versoes.length > 10) ag.versoes = ag.versoes.slice(-10);
+    }
+    ag.nome = nome;
+    ag.papel = $('edAgPapel').value.trim();
+    ag.tier = $('edAgTier').value;
+    ag.rag = $('edAgRag').checked;
+    ag.sistema = $('edAgSis').value;
+    ag.publico = $('edAgPub').value;
+    ag.prompt = prompt;
+    let tp = parseFloat($('edAgTemp').value); if (isNaN(tp)) tp = 0.7;
+    ag.temp = Math.min(1.5, Math.max(0, tp));
+    await salvarAgentes();
+    renderMatriz(); renderSelAgentes();
+    toast('Agente salvo — a próxima mensagem já usa a nova versão.');
+  };
+  $('btnExcluirAg').onclick = async () => {
+    const ag = S.agentes.find(x => x.id === S.agEdit); if (!ag) return;
+    if (S.agentes.length <= 1) return toast('Mantenha ao menos um agente.', 'erro');
+    if (!confirmar2('ag', 'Excluir o agente "' + ag.nome + '" e suas conversas')) return;
+    S.agentes = S.agentes.filter(x => x.id !== ag.id);
+    S.conversas = S.conversas.filter(c => c.agenteId !== ag.id);
+    if (S.agSel === ag.id) S.agSel = S.agentes[0].id;
+    S.agEdit = null;
+    await salvarAgentes(); await salvarConversas();
+    renderMatriz(); renderSelAgentes(); renderSelConversas(); renderMsgs();
+  };
+  $('btnRestaurar').onclick = () => {
+    const ag = S.agentes.find(x => x.id === S.agEdit); if (!ag) return;
+    const v = (ag.versoes || []).find(x => x.ts === $('selVersoes').value);
+    if (!v) return toast('Nenhuma versão anterior selecionada.', 'erro');
+    $('edAgPrompt').value = v.prompt;
+    toast('Versão carregada no editor — clique em Salvar para aplicar.');
+  };
+
+  // Conhecimento
+  $('kbBusca').addEventListener('input', debounce(renderKb, 180));
+  $('btnKbNovo').onclick = () => abrirRegistro(null);
+  $('btnKbImport').onclick = () => $('fileKbImport').click();
+  $('fileKbImport').onchange = e => { const f = e.target.files[0]; if (f) importarKbArquivo(f); e.target.value = ''; };
+  $('btnKbExport').onclick = () => baixarJSON({ meta: { app: S.cfg.branding.produto || 'TurIA', versao: VERSAO, ts: agora(), total: S.kb.length }, registros: S.kb }, 'turia-conhecimento.json');
+  $('btnKbIndexar').onclick = indexarSemantica;
+  $('kbPend').addEventListener('click', e => { const b = e.target.closest('button[data-act]'); if (b) acaoPend(b.dataset.act, b.dataset.id); });
+  $('kbLista').addEventListener('click', e => { const b = e.target.closest('button[data-act]'); if (b) acaoReg(b.dataset.act, b.dataset.id); });
+  $('btnRegCancelar').onclick = () => $('mReg').classList.remove('on');
+  $('btnRegSalvar').onclick = salvarRegistro;
+  $('mReg').addEventListener('click', e => { if (e.target === $('mReg')) $('mReg').classList.remove('on'); });
+  $('mSenha').addEventListener('click', e => { if (e.target === $('mSenha')) $('btnSenhaCancel').click(); });
+
+  // Modelos
+  ['oaBase', 'oaKey', 'anKey', 'inpModEmbed', 'inpCambio', 'selModBase', 'selModReforco', 'chkGateway', 'gwUrl', 'gwToken'].forEach(id => {
+    $(id).addEventListener('change', guardarCamposModelos);
+  });
+  $('btnOaTeste').onclick = () => testarConexao('oa');
+  $('btnAnTeste').onclick = () => testarConexao('an');
+  $('btnGwTeste').onclick = testarGateway;
+  $('btnCatAdd').onclick = () => {
+    const arr = lerCatalogoDom();
+    arr.push({ id: '', label: 'Novo modelo', prov: 'oa', tier: 'base', inP: 0, outP: 0 });
+    S.cfg.catalogo = arr;
+    renderCatalogo();
+  };
+  $('catLista').addEventListener('click', e => {
+    const b = e.target.closest('button[data-del]'); if (!b) return;
+    const arr = lerCatalogoDom();
+    arr.splice(parseInt(b.dataset.del, 10), 1);
+    S.cfg.catalogo = arr;
+    renderCatalogo();
+  });
+  $('btnCatSalvar').onclick = async () => {
+    S.cfg.catalogo = lerCatalogoDom().filter(m => m.id);
+    await salvarCfg();
+    renderModelos(); atualizarStatusVoo();
+    toast('Catálogo salvo.');
+  };
+  $('btnDefSenha').onclick = async () => {
+    const h = await pedirSenha('definir');
+    if (h) {
+      S.cfg.senhaHash = h; S.desbloqueado = false;
+      await salvarCfg();
+      renderModelos();
+      toast('Senha do Reforço definida.');
+    }
+  };
+  $('btnZerarUso').onclick = async () => {
+    if (!confirmar2('uso', 'Zerar todos os contadores de custo')) return;
+    S.uso = [];
+    await salvarUso();
+    renderCustos(); atualizarStatusVoo();
+    toast('Contadores zerados.');
+  };
+  $('btnWlSalvar').onclick = async () => {
+    S.cfg.branding = {
+      produto: $('wlProduto').value.trim() || 'TurIA',
+      empresa: $('wlEmpresa').value.trim() || 'Desenrola Digital',
+      logo: $('wlLogo').value.trim() || '🧠',
+      cor: $('wlCor').value.trim() || '#2C6AA3'
+    };
+    await salvarCfg();
+    aplicarBranding();
+    renderModelos();
+    toast('Identidade aplicada — o produto agora é seu.');
+  };
+
+  // ── Cérebro (portão 05) ──
+  $('cbConectar').onclick = async () => {
+    let cfgObj;
+    try {
+      let t = $('cbConfig').value.trim();
+      const i = t.indexOf('{'), j = t.lastIndexOf('}');
+      if (i > -1 && j > i) t = t.slice(i, j + 1);
+      cfgObj = JSON.parse(t);
+    } catch (e) { return toast('Config inválido — cole o objeto firebaseConfig ({ ... }).', 'erro'); }
+    const email = $('cbEmail').value.trim(), senha = $('cbSenha').value;
+    if (!email || !senha) return toast('Informe e-mail e senha do gestor.', 'erro');
+    $('cbStatus').textContent = 'entrando…';
+    try {
+      await Cerebro.conectar(cfgObj, email, senha);
+      await Cerebro.lerConfig();
+      await Store.set('cbConfig', cfgObj);
+      $('cbSenha').value = '';
+      toast('🧠 Conectado ao cérebro.');
+      renderCerebro();
+    } catch (e) {
+      $('cbStatus').textContent = 'falha na conexão';
+      const m = String(e.message || e);
+      toast('Não conectei: ' + (m.includes('auth') || m.includes('password') || m.includes('credential') ? 'e-mail ou senha incorretos (crie o usuário no Firebase → Authentication).' : m), 'erro');
+    }
+  };
+  $('cbProvAdd').onclick = async () => {
+    if (!Cerebro.conectado) return;
+    try { await Cerebro.salvarProvedor('novo' + Math.floor(Math.random() * 900 + 100), 'oa', 'https://'); renderProvedores(); }
+    catch (e) { toast('Erro: ' + (e.message || e), 'erro'); }
+  };
+  $('cbProvLista').addEventListener('click', async (e) => {
+    const tr = e.target.closest('tr[data-ap]'); if (!tr) return;
+    const apOrig = tr.dataset.ap;
+    if (e.target.classList.contains('cbp-save')) {
+      const ap = tr.querySelector('.cbp-ap').value.trim();
+      const tipo = tr.querySelector('.cbp-tipo').value;
+      const url = tr.querySelector('.cbp-url').value.trim();
+      if (!ap) return toast('Apelido vazio.', 'erro');
+      try {
+        if (ap !== apOrig) await Cerebro.excluirProvedor(apOrig);
+        await Cerebro.salvarProvedor(ap, tipo, url);
+        toast('Provedor salvo.'); renderProvedores();
+      } catch (err) { toast('Erro: ' + (err.message || err), 'erro'); }
+    } else if (e.target.classList.contains('cbp-del')) {
+      if (!confirmar2('cbp' + apOrig, 'Excluir o provedor "' + apOrig + '"')) return;
+      try { await Cerebro.excluirProvedor(apOrig); renderProvedores(); } catch (err) { toast('Erro: ' + (err.message || err), 'erro'); }
+    }
+  });
+  $('cbRotaSalvar').onclick = async () => {
+    if (!Cerebro.conectado) return;
+    try {
+      await Cerebro.salvarRoteamento('base', txtParaLista($('cbRotaBase').value));
+      await Cerebro.salvarRoteamento('reforco', txtParaLista($('cbRotaReforco').value));
+      toast('Roteamento salvo — já vale na próxima resposta.');
+    } catch (e) { toast('Erro: ' + (e.message || e), 'erro'); }
+  };
+  $('cbAnalisar').onclick = analisarCerebro;
+  $('cbPropostas').addEventListener('click', async (e) => {
+    const div = e.target.closest('div[data-i]'); if (!div) return;
+    const p = (window._propostasCache || [])[parseInt(div.dataset.i, 10)]; if (!p) return;
+    if (e.target.classList.contains('cbprop-ap')) {
+      if (!confirmar2('prop' + div.dataset.i, 'Aplicar: ' + p.tarefa + ' → ' + p.proposto)) return;
+      try { await Cerebro.salvarProposta(p); await Cerebro.aplicarProposta(Object.assign({ id: 'p_tmp' }, p)); toast('Troca aplicada no roteamento.'); analisarCerebro(); renderRoteamento(); }
+      catch (err) { toast('Erro ao aplicar: ' + (err.message || err), 'erro'); }
+    } else if (e.target.classList.contains('cbprop-rej')) {
+      div.style.opacity = '0.4'; e.target.closest('.cab').querySelectorAll('button').forEach(b => b.disabled = true);
+    }
+  });
+  $('cbKosImport').onclick = () => { if (Cerebro.conectado) $('cbKosFile').click(); else toast('Conecte ao cérebro primeiro.', 'erro'); };
+  $('cbKosFile').onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const j = JSON.parse(await f.text());
+      const regs = Array.isArray(j) ? j : (j.registros || j.records || j.items || []);
+      if (!regs.length) return toast('Nenhum registro reconhecido no arquivo.', 'erro');
+      const n = await Cerebro.importarConhecimento(regs, 'global');
+      toast(n + ' registros importados para a memória do cérebro.');
+      renderKbMed();
+    } catch (err) { toast('Erro ao importar: ' + (err.message || err), 'erro'); }
+    e.target.value = '';
+  };
+  // reconexão: reaproveita a sessão do Firebase Auth (não guardamos a senha)
+  (async () => {
+    const salvo = await Store.get('cbConfig');
+    if (!salvo) return;
+    try { $('cbConfig').value = JSON.stringify(salvo, null, 2); } catch (e) {}
+    try {
+      if (typeof firebase === 'undefined') return;
+      const app = Cerebro._obterApp(salvo);
+      await new Promise(function (res) { let d = false; const un = firebase.auth(app).onAuthStateChanged(function () { if (d) return; d = true; un(); res(); }); setTimeout(function () { if (!d) { d = true; res(); } }, 2500); });
+      if (firebase.auth(app).currentUser) { await Cerebro.conectar(salvo); await Cerebro.lerConfig(); renderCerebro(); }
+    } catch (e) { /* silencioso — usuário loga pela tela */ }
+  })();
+
+  $('btnBackup').onclick = exportarBackup;
+  $('btnRestore').onclick = () => { if (confirmar2('rest', 'Restaurar backup substitui os dados atuais')) $('fileRestore').click(); };
+  $('fileRestore').onchange = e => { const f = e.target.files[0]; if (f) restaurarBackup(f); e.target.value = ''; };
+}
+init();
+</script>
+</body>
+</html>
