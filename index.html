@@ -440,6 +440,44 @@ input:focus,select:focus,textarea:focus{border-color:var(--lagoa)}
     </div>
 
     <div id="cbConectadoArea" style="display:none">
+      <!-- Prompt-mãe (Matriz Global) -->
+      <div class="cartao">
+        <h3>Matriz Global — o prompt-mãe</h3>
+        <p class="dica">A identidade e as regras que valem para <b>todos</b> os agentes (camada 1 de todo prompt). Editar aqui muda o comportamento de toda a TurIA de uma vez.</p>
+        <textarea id="cbMatriz" style="min-height:200px"></textarea>
+        <div class="linha" style="margin-top:10px;justify-content:flex-end"><button class="btn fixo" id="cbMatrizSalvar">Salvar Matriz Global</button></div>
+      </div>
+
+      <!-- Sistemas & Integração via API -->
+      <div class="cartao" style="border-left:4px solid var(--sol)">
+        <h3>🔌 Sistemas & Chaves de API (integração)</h3>
+        <p class="dica">Cada sistema que se conecta à TurIA (Desenrola, GuiD, Marketing, e agências clientes) tem a própria chave. Crie, regenere ou revogue aqui. A chave aparece <b>uma única vez</b> — só o hash fica guardado.</p>
+        <label>Endereço da API (URL da função iaCentral) — usado no exemplo de integração</label>
+        <div class="linha"><input type="url" id="cbFuncUrl" class="mono" placeholder="https://us-central1-desenrola-turia.cloudfunctions.net/iaCentral"><button class="btn mini fixo" id="cbFuncUrlSalvar">Salvar URL</button></div>
+        <label>Link de compra de créditos (quando o site de vendas existir)</label>
+        <div class="linha"><input type="url" id="cbLinkCompra" class="mono" placeholder="(vazio por enquanto)"><button class="btn mini fixo" id="cbLinkSalvar">Salvar link</button></div>
+        <div style="margin-top:14px" id="cbSistemasLista"></div>
+        <div class="aviso-inline" style="margin-top:12px">
+          <b>Criar novo sistema/cliente:</b>
+          <div class="linha" style="margin-top:8px">
+            <input type="text" id="cbSisId" class="mono fixo" style="flex:0 0 180px" placeholder="id (ex.: agencia-xyz)">
+            <input type="text" id="cbSisNome" placeholder="nome amigável">
+          </div>
+          <div class="linha" style="margin-top:8px">
+            <div><label style="margin:0">Teto chamadas/dia</label><input type="number" id="cbSisTeto" value="1000"></div>
+            <div><label style="margin:0">Teto US$/dia</label><input type="number" id="cbSisUsd" value="5" step="0.5"></div>
+            <button class="btn fixo" id="cbSisCriar" style="align-self:flex-end">Criar e gerar chave</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Senha do Reforço -->
+      <div class="cartao">
+        <h3>🔒 Senha do Reforço (IA forte)</h3>
+        <p class="dica">Todos os agentes operam no modo <b>básico</b> (barato). Passar um agente para <b>reforço</b> (APIs fortes/pagas) exige esta senha — trava de custo.</p>
+        <div class="linha"><button class="btn sol mini fixo" id="cbSenhaDef">Definir / trocar senha do Reforço</button><span class="medidor" id="cbSenhaEstado"></span></div>
+      </div>
+
       <!-- Provedores -->
       <div class="cartao">
         <div class="linha" style="justify-content:space-between"><h3 style="margin:0">Provedores</h3><button class="btn mini fixo" id="cbProvAdd">+ Provedor</button></div>
@@ -466,22 +504,43 @@ input:focus,select:focus,textarea:focus{border-color:var(--lagoa)}
         <div id="cbPropostas"></div>
       </div>
 
-      <!-- KOS / memória -->
+      <!-- Agentes do cérebro -->
+      <div class="cartao">
+        <h3>Agentes (biblioteca do cérebro)</h3>
+        <p class="dica">Edite o prompt de cada agente e faça o upgrade para reforço (com senha). O que está aqui é o que os sistemas clientes consomem.</p>
+        <div class="linha">
+          <select id="cbAgSel"></select>
+          <span class="pill" id="cbAgTier"></span>
+          <button class="btn mini fantasma fixo" id="cbAgUpgrade">Upgrade p/ Reforço</button>
+          <button class="btn mini fantasma fixo" id="cbAgBase">Voltar p/ Básico</button>
+        </div>
+        <textarea id="cbAgPrompt" style="min-height:180px;margin-top:10px"></textarea>
+        <div class="linha" style="margin-top:8px;justify-content:flex-end"><button class="btn fixo" id="cbAgSalvar">Salvar prompt</button></div>
+      </div>
+
+      <!-- Curadoria de aprendizados (a consciência cresce aqui) -->
+      <div class="cartao" style="border-left:4px solid var(--sol)">
+        <div class="linha" style="justify-content:space-between"><h3 style="margin:0">Curadoria — o que os sistemas sugeriram</h3><button class="btn mini fantasma fixo" id="cbAprRefresh">Atualizar</button></div>
+        <p class="dica">Aprendizados que os sistemas das empresas enviaram. Você aprova → vira <b>conhecimento global</b> da TurIA (serve todos). A base de cada cliente permanece isolada no sistema dele.</p>
+        <div id="cbAprLista"></div>
+      </div>
+
+      <!-- Memória global (curada) + KOS -->
       <div class="cartao" id="cbKosCard">
-        <h3>Memória & Conhecimento (porta do KOS)</h3>
-        <p class="dica">A base que os agentes consultam. O <b>KOS</b> entra por aqui: importe o JSON exportado dele para alimentar a memória global do cérebro. Nada é removido da origem — só copiado.</p>
+        <h3>Memória global (curada) & KOS</h3>
+        <p class="dica">A base <b>global</b> que os agentes consultam — só conhecimento genérico e curado. O <b>KOS</b> entra por aqui: importe o JSON dele para alimentar essa memória. Nada de dados de cliente; a base de cada empresa fica no sistema dela.</p>
         <div class="linha">
           <span class="medidor" id="cbKbMed">—</span>
-          <button class="btn fantasma fixo" id="cbKosImport">Importar conhecimento (KOS/JSON)</button>
+          <button class="btn fantasma fixo" id="cbKosImport">Importar conhecimento global (KOS/JSON)</button>
           <input type="file" id="cbKosFile" accept=".json,application/json" style="display:none">
         </div>
-        <div class="aviso-inline">Formato aceito: array de registros ou <span class="pill">{ registros: [...] }</span>, com campos como titulo/conteudo/categoria/tags. Quando o KOS estiver pronto, é só apontar o export dele aqui.</div>
+        <div class="aviso-inline">Aceita array de registros ou <span class="pill">{ registros: [...] }</span> (titulo/conteudo/categoria/tags). Quando o KOS estiver pronto, aponte o export dele aqui.</div>
       </div>
     </div>
   </div>
 </main>
 
-<footer class="rodape-app" id="rodapeApp">TurIA v3.0.0 · cérebro central de IA · Desenrola Digital</footer>
+<footer class="rodape-app" id="rodapeApp">TurIA v3.1.0 · cérebro central de IA · Desenrola Digital</footer>
 
 <!-- Modais -->
 <div class="veu" id="mSenha">
@@ -518,15 +577,35 @@ input:focus,select:focus,textarea:focus{border-color:var(--lagoa)}
   </div>
 </div>
 
+<div class="veu" id="mCredito">
+  <div class="modal">
+    <h3>Adicionar créditos (R$)</h3>
+    <p class="dica" id="mCredSis"></p>
+    <label>Valor a adicionar (R$)</label><input type="number" id="mCredValor" step="10" min="0" placeholder="ex.: 100">
+    <div class="acoes"><button class="btn fantasma" id="mCredCancel">Cancelar</button><button class="btn" id="mCredOk">Adicionar</button></div>
+  </div>
+</div>
+
+<div class="veu" id="mToken">
+  <div class="modal">
+    <h3>🔑 Chave gerada — copie AGORA</h3>
+    <p class="dica">Esta chave aparece <b>uma única vez</b>. Guarde em local seguro e coloque no sistema que vai se conectar. Depois disto, só o hash fica no cérebro.</p>
+    <label>Sistema</label><input type="text" id="mTokenSis" readonly class="mono">
+    <label>Chave (API token)</label><textarea id="mTokenVal" readonly class="mono" style="min-height:70px"></textarea>
+    <label>Exemplo de integração</label><textarea id="mTokenSnippet" readonly class="mono" style="min-height:150px;font-size:11px"></textarea>
+    <div class="acoes"><button class="btn" id="mTokenOk">Já copiei, fechar</button></div>
+  </div>
+</div>
+
 <div id="toasts"></div>
 
 <script>
 'use strict';
 /* ═════════════════════════════════════════════════════════════
-   TurIA v3.0.0 — Cérebro Central de IA · Desenrola Digital
+   TurIA v3.1.0 — Cérebro Central de IA · Desenrola Digital
    Biblioteca de Inteligência · arquivo único · GitHub Pages
    ═════════════════════════════════════════════════════════════ */
-const VERSAO = '3.0.0';
+const VERSAO = '3.1.0';
 
 /* ── Utilitários ── */
 const $ = id => document.getElementById(id);
@@ -1862,6 +1941,54 @@ const Cerebro = {
 
   async lerConfig() { this.cfg = (await this.ler('config')) || {}; return this.cfg; },
 
+  // ── Matriz Global (o prompt-mãe de todos os agentes) ──
+  async lerMatriz() { return (await this.ler('matriz/global')) || { texto: '' }; },
+  async salvarMatriz(texto) { const at = (await this.ler('matriz/global')) || {}; await this.gravar('matriz/global', { texto: String(texto || ''), versao: (at.versao || 0) + 1, em: Date.now() }); },
+
+  // ── Sistemas / integração via API (chaves dos sistemas clientes) ──
+  async listarSistemas() { return (await this.ler('config/sistemas')) || {}; },
+  _gerarTokenPlano(sid) { const a = new Uint8Array(24); crypto.getRandomValues(a); const hex = Array.from(a).map(function (b) { return b.toString(16).padStart(2, '0'); }).join(''); return 'tia_' + sid + '_' + hex; },
+  async criarSistema(id, nome, tetoDia, usdDia, prompt) {
+    const token = this._gerarTokenPlano(id);
+    const hash = await sha256(token);
+    if (hash[0] === 'x') throw new Error('Geração de token exige HTTPS — publique o Console e acesse por https.');
+    const at = (await this.ler('config/sistemas/' + id)) || {};
+    await this.gravar('config/sistemas/' + id, Object.assign({}, at, { nome: nome || id, tetoDia: Number(tetoDia) || 500, usdDia: Number(usdDia) || 5, prompt: (prompt != null ? prompt : (at.prompt || '')), tokenHash: hash, em: Date.now() }));
+    return token;
+  },
+  async regenerarToken(id) {
+    const token = this._gerarTokenPlano(id);
+    const hash = await sha256(token);
+    if (hash[0] === 'x') throw new Error('Geração de token exige HTTPS.');
+    await this.atualizar('config/sistemas/' + id, { tokenHash: hash, tokenEm: Date.now() });
+    return token;
+  },
+  async excluirSistema(id) { await this.remover('config/sistemas/' + id); },
+  async salvarFuncUrl(url) { await this.gravar('config/funcUrl', String(url || '')); },
+  async lerFuncUrl() { return (await this.ler('config/funcUrl')) || ''; },
+
+  // ── Agentes do cérebro + senha do Reforço ──
+  async listarAgentes() { return (await this.ler('agentes')) || {}; },
+  async salvarAgente(id, patch) { await this.atualizar('agentes/' + id, Object.assign({ em: Date.now() }, patch)); },
+  async lerSenhaReforcoHash() { return (await this.ler('config/senhaReforcoHash')) || ''; },
+  async definirSenhaReforco(hash) { await this.gravar('config/senhaReforcoHash', hash); },
+
+  // ── Carteira de créditos (R$) por sistema ──
+  async adicionarCredito(sid, brl) { await this.ref('config/sistemas/' + sid + '/saldoBRL').transaction(function (a) { return (Number(a) || 0) + Number(brl); }); },
+  async definirLinkCompra(url) { await this.gravar('config/linkCompra', String(url || '')); },
+  async lerLinkCompra() { return (await this.ler('config/linkCompra')) || ''; },
+  async lerCambio() { return Number(await this.ler('config/cambio')) || 5.5; },
+  async salvarCambio(v) { await this.gravar('config/cambio', Number(v) || 5.5); },
+
+  // ── Fila de curadoria (aprendizados vindos dos sistemas) ──
+  async listarAprendizados() { const o = (await this.ler('aprendizados')) || {}; return Object.keys(o).map(function (k) { return o[k]; }).filter(function (x) { return x && x.status === 'pendente'; }); },
+  async aprovarAprendizado(ap) {
+    const id = 'kb' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    await this.gravar('conhecimento/global/' + id, { titulo: ap.titulo, categoria: ap.categoria || 'Aprendizado', tags: ['aprendizado', ap.origemSistema || ''], conteudo: ap.conteudo, fonte: 'curadoria:' + (ap.origemSistema || '?'), ativo: true, em: Date.now() });
+    await this.atualizar('aprendizados/' + ap.id, { status: 'aprovado' });
+  },
+  async rejeitarAprendizado(id) { await this.atualizar('aprendizados/' + id, { status: 'rejeitado' }); },
+
   // ── Provedores ──
   async listarProvedores() { return (await this.ler('config/provedores')) || {}; },
   async salvarProvedor(apelido, tipo, urlBase) { await this.gravar('config/provedores/' + apelido, { tipo: tipo, urlBase: urlBase || '' }); },
@@ -2012,7 +2139,7 @@ function renderCerebro() {
   const con = Cerebro.conectado;
   $('cbStatus').textContent = con ? '🧠 conectado a ' + (Cerebro.cfg && Cerebro.cfg.empresa ? Cerebro.cfg.empresa : 'desenrola-turia') : 'desconectado';
   $('cbConectadoArea').style.display = con ? 'block' : 'none';
-  if (con) { renderProvedores(); renderRoteamento(); renderKbMed(); }
+  if (con) { renderProvedores(); renderRoteamento(); renderKbMed(); renderMatrizG(); renderSistemas(); renderAgentesBrain(); renderSenhaEstado(); renderCuradoria(); }
 }
 async function renderProvedores() {
   try {
@@ -2038,6 +2165,91 @@ async function renderRoteamento() {
 async function renderKbMed() {
   try { const n = await Cerebro.contarConhecimento('global'); $('cbKbMed').textContent = n + ' registros na memória global'; }
   catch (e) { $('cbKbMed').textContent = '—'; }
+}
+async function renderMatrizG() {
+  try { const m = await Cerebro.lerMatriz(); $('cbMatriz').value = m.texto || ''; } catch (e) {}
+}
+async function renderSenhaEstado() {
+  try { const h = await Cerebro.lerSenhaReforcoHash(); $('cbSenhaEstado').textContent = h ? '\u2705 senha definida' : '\u26a0\ufe0f sem senha \u2014 reforço bloqueado até definir'; } catch (e) {}
+}
+function snippetIntegracao(url, sid, token) {
+  url = url || 'https://SUA-URL/iaCentral';
+  var linhas = [
+    'POST ' + url,
+    'Authorization: Bearer ' + (token || 'SUA_CHAVE'),
+    'Content-Type: application/json',
+    '',
+    '{"sistema":"' + sid + '","agente":"recepcao","mensagens":[{"papel":"user","texto":"Oi"}]}'
+  ];
+  return linhas.join('\n');
+}
+async function renderSistemas() {
+  try {
+    const url = await Cerebro.lerFuncUrl();
+    $('cbFuncUrl').value = url || '';
+    try { $('cbLinkCompra').value = await Cerebro.lerLinkCompra(); } catch (e) {}
+    const sis = await Cerebro.listarSistemas();
+    const ids = Object.keys(sis);
+    $('cbSistemasLista').innerHTML = ids.length ? ids.map(function (id) {
+      const x = sis[id] || {};
+      return '<div class="reg" data-sid="' + esc(id) + '"><div class="cab">' +
+        '<span class="tt mono">' + esc(id) + '</span><span class="pill">' + esc(x.nome || '') + '</span>' +
+        '<span class="pill">' + (x.tokenHash ? '\ud83d\udd11 chave ativa' : 'sem chave') + '</span>' +
+        '<span class="pill">' + (x.tetoDia || '?') + '/dia</span>' +
+        '<span class="pill ' + ((Number(x.saldoBRL) || 0) <= 0 ? 'pend' : 'base') + '">saldo R$ ' + (Number(x.saldoBRL) || 0).toFixed(2) + '</span>' +
+        '<button class="btn mini fixo cbsis-cred">+ Crédito</button>' +
+        '<button class="btn mini fixo cbsis-regen">Regenerar chave</button>' +
+        '<button class="btn mini perigo fixo cbsis-del">Revogar</button></div></div>';
+    }).join('') : '<p class="dica">Nenhum sistema conectado ainda. Crie o primeiro abaixo (ex.: <b>gestao</b>, <b>guid</b>, <b>marketing</b>).</p>';
+  } catch (e) { toast('Erro lendo sistemas: ' + (e.message || e), 'erro'); }
+}
+async function renderCuradoria() {
+  try {
+    const aprs = await Cerebro.listarAprendizados();
+    $('cbAprLista').innerHTML = aprs.length ? aprs.map(function (a, i) {
+      return '<div class="reg pendente" data-apid="' + esc(a.id) + '" data-i="' + i + '"><div class="cab">' +
+        '<span class="tt">' + esc(a.titulo || 'Sugestão') + '</span>' +
+        '<span class="pill">de ' + esc(a.origemSistema || '?') + '</span>' +
+        '<span class="pill">' + esc(a.categoria || 'Geral') + '</span>' +
+        '<button class="btn mini fixo cbapr-ok">Aprovar → global</button>' +
+        '<button class="btn mini fantasma fixo cbapr-no">Rejeitar</button></div>' +
+        '<div class="tx">' + esc(a.conteudo || '') + '</div></div>';
+    }).join('') : '<p class="dica">Nenhuma sugestão pendente. Quando os sistemas enviarem aprendizados, eles aparecem aqui para você aprovar.</p>';
+    window._aprCache = aprs;
+  } catch (e) { toast('Erro lendo curadoria: ' + (e.message || e), 'erro'); }
+}
+async function renderAgentesBrain() {
+  try {
+    const ags = await Cerebro.listarAgentes();
+    const ids = Object.keys(ags);
+    const sel = $('cbAgSel');
+    const atual = sel.value;
+    sel.innerHTML = ids.map(function (id) { return '<option value="' + esc(id) + '">' + esc(ags[id].nome || id) + (ags[id].tier === 'reforco' ? ' \u26a1' : '') + '</option>'; }).join('');
+    window._agsBrain = ags;
+    if (atual && ags[atual]) sel.value = atual; else if (ids.length) sel.value = ids[0];
+    mostrarAgenteBrain();
+  } catch (e) { toast('Erro lendo agentes: ' + (e.message || e), 'erro'); }
+}
+function mostrarAgenteBrain() {
+  const ags = window._agsBrain || {};
+  const id = $('cbAgSel').value;
+  const a = ags[id];
+  if (!a) { $('cbAgPrompt').value = ''; $('cbAgTier').textContent = ''; return; }
+  $('cbAgPrompt').value = a.prompt || '';
+  $('cbAgTier').textContent = a.tier === 'reforco' ? '\u26a1 Reforço' : 'Básico';
+  $('cbAgTier').className = 'pill ' + (a.tier === 'reforco' ? 'reforco' : 'base');
+}
+function pedirSenhaValor() {
+  return new Promise(function (res) {
+    $('mSenhaTitulo').textContent = 'Senha do Reforço';
+    $('mSenhaMsg').textContent = 'Digite a senha para liberar o upgrade para IA forte.';
+    $('blocoConfirma').style.display = 'none';
+    $('inpSenha').value = '';
+    $('mSenha').classList.add('on'); $('inpSenha').focus();
+    const fim = function (v) { $('mSenha').classList.remove('on'); $('btnSenhaOk').onclick = null; $('btnSenhaCancel').onclick = null; res(v); };
+    $('btnSenhaCancel').onclick = function () { fim(null); };
+    $('btnSenhaOk').onclick = async function () { const p = $('inpSenha').value; if (!p) return toast('Informe a senha.', 'erro'); fim(await sha256(p)); };
+  });
 }
 function txtParaLista(t) { return String(t || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean); }
 
@@ -2315,6 +2527,85 @@ async function init() {
     } catch (e) { /* silencioso — usuário loga pela tela */ }
   })();
 
+  // Link de compra de créditos
+  $('cbLinkSalvar').onclick = async () => { try { await Cerebro.definirLinkCompra($('cbLinkCompra').value.trim()); toast('Link de compra salvo.'); } catch (e) { toast('Erro: ' + (e.message || e), 'erro'); } };
+  // Crédito por sistema (modal)
+  let _credSid = null;
+  $('mCredCancel').onclick = () => $('mCredito').classList.remove('on');
+  $('mCredOk').onclick = async () => {
+    const v = parseFloat($('mCredValor').value);
+    if (!(v > 0)) return toast('Informe um valor maior que zero.', 'erro');
+    try { await Cerebro.adicionarCredito(_credSid, v); $('mCredito').classList.remove('on'); toast('R$ ' + v.toFixed(2) + ' adicionados a ' + _credSid + '.'); renderSistemas(); }
+    catch (e) { toast('Erro: ' + (e.message || e), 'erro'); }
+  };
+  // Curadoria de aprendizados
+  $('cbAprRefresh').onclick = renderCuradoria;
+  $('cbAprLista').addEventListener('click', async (e) => {
+    const div = e.target.closest('div[data-apid]'); if (!div) return;
+    const ap = (window._aprCache || [])[parseInt(div.dataset.i, 10)]; if (!ap) return;
+    if (e.target.classList.contains('cbapr-ok')) {
+      try { await Cerebro.aprovarAprendizado(ap); toast('Aprovado — virou conhecimento global.'); renderCuradoria(); renderKbMed(); }
+      catch (err) { toast('Erro: ' + (err.message || err), 'erro'); }
+    } else if (e.target.classList.contains('cbapr-no')) {
+      try { await Cerebro.rejeitarAprendizado(ap.id); renderCuradoria(); } catch (err) { toast('Erro: ' + (err.message || err), 'erro'); }
+    }
+  });
+  // Matriz Global
+  $('cbMatrizSalvar').onclick = async () => { if (!Cerebro.conectado) return; try { await Cerebro.salvarMatriz($('cbMatriz').value); toast('Matriz Global salva \u2014 vale para todos os agentes.'); } catch (e) { toast('Erro: ' + (e.message || e), 'erro'); } };
+  // Sistemas & API
+  $('cbFuncUrlSalvar').onclick = async () => { try { await Cerebro.salvarFuncUrl($('cbFuncUrl').value.trim()); toast('URL salva.'); } catch (e) { toast('Erro: ' + (e.message || e), 'erro'); } };
+  function abrirModalToken(sid, token) {
+    $('mTokenSis').value = sid; $('mTokenVal').value = token;
+    $('mTokenSnippet').value = snippetIntegracao($('cbFuncUrl').value.trim(), sid, token);
+    $('mToken').classList.add('on');
+  }
+  $('mTokenOk').onclick = () => $('mToken').classList.remove('on');
+  $('cbSisCriar').onclick = async () => {
+    if (!Cerebro.conectado) return;
+    const id = $('cbSisId').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    if (!id) return toast('Informe um id (só letras/números/-/_).', 'erro');
+    try {
+      const token = await Cerebro.criarSistema(id, $('cbSisNome').value.trim(), $('cbSisTeto').value, $('cbSisUsd').value, null);
+      $('cbSisId').value = ''; $('cbSisNome').value = '';
+      abrirModalToken(id, token);
+      renderSistemas();
+    } catch (e) { toast('Erro ao criar: ' + (e.message || e), 'erro'); }
+  };
+  $('cbSistemasLista').addEventListener('click', async (e) => {
+    const div = e.target.closest('div[data-sid]'); if (!div) return;
+    const sid = div.dataset.sid;
+    if (e.target.classList.contains('cbsis-cred')) {
+      _credSid = sid; $('mCredSis').textContent = 'Sistema: ' + sid; $('mCredValor').value = ''; $('mCredito').classList.add('on'); $('mCredValor').focus();
+    } else if (e.target.classList.contains('cbsis-regen')) {
+      if (!confirmar2('regen' + sid, 'Regenerar a chave de "' + sid + '" (a antiga para de funcionar)')) return;
+      try { const token = await Cerebro.regenerarToken(sid); abrirModalToken(sid, token); } catch (err) { toast('Erro: ' + (err.message || err), 'erro'); }
+    } else if (e.target.classList.contains('cbsis-del')) {
+      if (!confirmar2('delsis' + sid, 'Revogar o sistema "' + sid + '"')) return;
+      try { await Cerebro.excluirSistema(sid); renderSistemas(); } catch (err) { toast('Erro: ' + (err.message || err), 'erro'); }
+    }
+  });
+  // Senha do Reforço
+  $('cbSenhaDef').onclick = async () => {
+    if (!Cerebro.conectado) return;
+    const h = await pedirSenha('definir');
+    if (h) { try { await Cerebro.definirSenhaReforco(h); toast('Senha do Reforço definida.'); renderSenhaEstado(); } catch (e) { toast('Erro: ' + (e.message || e), 'erro'); } }
+  };
+  // Agentes do cérebro
+  $('cbAgSel').onchange = mostrarAgenteBrain;
+  $('cbAgSalvar').onclick = async () => { const id = $('cbAgSel').value; if (!id) return; try { await Cerebro.salvarAgente(id, { prompt: $('cbAgPrompt').value }); if (window._agsBrain[id]) window._agsBrain[id].prompt = $('cbAgPrompt').value; toast('Prompt do agente salvo.'); } catch (e) { toast('Erro: ' + (e.message || e), 'erro'); } };
+  $('cbAgUpgrade').onclick = async () => {
+    const id = $('cbAgSel').value; if (!id) return;
+    const brainHash = await Cerebro.lerSenhaReforcoHash();
+    if (!brainHash) return toast('Defina a senha do Reforço primeiro.', 'erro');
+    const h = await pedirSenhaValor();
+    if (!h) return;
+    if (h !== brainHash) return toast('Senha incorreta.', 'erro');
+    try { await Cerebro.salvarAgente(id, { tier: 'reforco' }); window._agsBrain[id].tier = 'reforco'; mostrarAgenteBrain(); renderAgentesBrain(); toast('Agente promovido a Reforço.'); } catch (e) { toast('Erro: ' + (e.message || e), 'erro'); }
+  };
+  $('cbAgBase').onclick = async () => {
+    const id = $('cbAgSel').value; if (!id) return;
+    try { await Cerebro.salvarAgente(id, { tier: 'base' }); window._agsBrain[id].tier = 'base'; mostrarAgenteBrain(); renderAgentesBrain(); toast('Agente de volta ao Básico.'); } catch (e) { toast('Erro: ' + (e.message || e), 'erro'); }
+  };
   $('btnBackup').onclick = exportarBackup;
   $('btnRestore').onclick = () => { if (confirmar2('rest', 'Restaurar backup substitui os dados atuais')) $('fileRestore').click(); };
   $('fileRestore').onchange = e => { const f = e.target.files[0]; if (f) restaurarBackup(f); e.target.value = ''; };
