@@ -307,8 +307,13 @@ td{padding:8px;border-bottom:1px solid var(--linha)}
     <label>Endereço da API (função iaCentral)</label>
     <div class="linha"><input type="url" id="cbUrl" class="mono" placeholder="https://iacentral-xxxx-uc.a.run.app"><button class="btn mini fix" id="cbUrlSalvar">Salvar</button><button class="btn f mini fix" id="cbTestar">Testar</button></div>
     <label>Token do sistema "console" (usado pelo Chat)</label>
-    <div class="linha"><input type="password" id="cbTok" class="mono" placeholder="tia_console_..."><button class="btn mini fix" id="cbTokSalvar">Salvar</button></div>
-    <div class="aviso">O token fica guardado no cérebro, protegido pelo seu login. Recarregar a página não perde mais nada.</div>
+    <div class="linha">
+      <input type="password" id="cbTok" class="mono" placeholder="tia_console_...">
+      <button class="btn mini fix" id="cbTokSalvar">Salvar</button>
+      <button class="btn g mini fix" id="cbTokGerar">🔄 Gerar e usar</button>
+      <button class="btn f mini fix" id="cbTokTestar">Testar</button>
+    </div>
+    <div class="aviso"><b>Deu "token_invalido"?</b> Clique em <b>Gerar e usar</b>: ele cria uma chave nova, grava no cérebro e já liga o Chat — sem copiar nada. Use isso sempre que rodar o seed com <span class="pill mono">--tokens</span>.</div>
   </div>
 
   <div class="card" style="border-left:3px solid var(--sol)">
@@ -381,7 +386,7 @@ td{padding:8px;border-bottom:1px solid var(--linha)}
 
 <script>
 'use strict';
-const VERSAO = '4.2.0';
+const VERSAO = '4.3.0';
 
 // firebaseConfig EMBUTIDO — a apiKey web é pública por design. Nunca mais colar nada.
 const FB = {
@@ -852,6 +857,34 @@ async function renderCerebro() {
 }
 $('cbUrlSalvar').onclick = async () => { const v = $('cbUrl').value.trim(); await D.gravar('ia/config/funcUrl', v); S.cfg.funcUrl = v; toast('Endereço salvo.'); };
 $('cbTokSalvar').onclick = async () => { const v = $('cbTok').value.trim(); await D.gravar('ia/config/consoleToken', v); S.cfg.consoleToken = v; toast('Token salvo — o Chat já pode usar.'); };
+
+// Gera um token novo, grava o hash no sistema E o token no Console. Uma ação, zero cópia.
+$('cbTokGerar').onclick = async () => {
+  if (!confirm('Gerar uma chave nova para o sistema "console"?\n\nA chave antiga para de funcionar na hora. O Chat volta a funcionar automaticamente.')) return;
+  try {
+    const tok = gerarToken('console');
+    const hash = await sha256(tok);
+    if (hash[0] === 'x') return toast('Precisa de HTTPS para gerar a chave.', 'er');
+    await D.atualizar('ia/config/sistemas/console', { tokenHash: hash, tokenEm: Date.now() });
+    await D.gravar('ia/config/consoleToken', tok);
+    S.cfg.consoleToken = tok;
+    $('cbTok').value = tok;
+    toast('Chave nova gerada e ligada. O Chat já funciona.');
+  } catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
+
+// Testa o token de verdade contra o cérebro (ping autenticado)
+$('cbTokTestar').onclick = async () => {
+  const u = ($('cbUrl').value || '').trim(), t = ($('cbTok').value || '').trim();
+  if (!u || !t) return toast('Preencha o endereço e o token.', 'er');
+  try {
+    const r = await fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t }, body: JSON.stringify({ sistema: 'console', ping: true }) });
+    const j = await r.json();
+    if (j.ok) toast('✅ Token válido — iaCentral v' + j.versao);
+    else if (j.erro === 'token_invalido') toast('❌ Token inválido. Clique em "Gerar e usar".', 'er');
+    else toast('Resposta: ' + (j.erro || '?'), 'er');
+  } catch (e) { toast('Falhou: ' + (e.message || e), 'er'); }
+};
 $('cbTestar').onclick = async () => {
   const u = $('cbUrl').value.trim(); if (!u) return toast('Informe o endereço.', 'er');
   try { const r = await fetch(u); const j = await r.json(); toast(j.ok ? ('🧠 no ar — iaCentral v' + j.versao) : 'Resposta inesperada.'); }
