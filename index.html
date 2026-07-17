@@ -164,6 +164,15 @@ td{padding:8px;border-bottom:1px solid var(--linha)}
     <button class="btn fix" id="chatEnviar" style="align-self:stretch;padding:0 22px">Enviar</button>
   </div>
   <div class="aviso">Para gravar no KOS, escreva de forma explícita: <b>"TurIA, grave no KOS: ..."</b> — aparecerá uma confirmação antes de qualquer escrita.</div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="linha" style="justify-content:space-between">
+      <h3 style="margin:0">📜 Histórico das conversas</h3>
+      <button class="btn f mini fix" id="histRefresh">Atualizar</button>
+    </div>
+    <p class="dica">Só as conversas <b>deste Console</b>. Tudo já passou pelo filtro de privacidade. Os registros dos outros sistemas ficam ocultos — servem só para a TurIA analisar e propor memórias.</p>
+    <div id="histLista"></div>
+  </div>
 </section>
 
 <!-- ── AGENTES ── -->
@@ -375,6 +384,23 @@ td{padding:8px;border-bottom:1px solid var(--linha)}
     </div>
   </div>
   <div class="card">
+    <h3>📥 O que a TurIA absorveu</h3>
+    <p class="dica">Registros dos sistemas conectados. O conteúdo fica <b>oculto</b> — serve só para ela analisar e propor memórias. Aqui você vê o volume.</p>
+    <div class="kpi" style="margin:0" id="absKpi"></div>
+  </div>
+
+  <div class="card" style="border-left:3px solid var(--sol)">
+    <div class="linha" style="justify-content:space-between">
+      <h3 style="margin:0">🧠 Resumo do mês (a IA forte lê tudo no dia 1º)</h3>
+      <div class="linha fix">
+        <select id="semTipo" style="flex:0 0 100px"><option value="mensal">Mensal</option><option value="anual">Anual</option></select>
+        <select id="semSel" style="flex:0 0 130px"></select>
+      </div>
+    </div>
+    <div id="semConteudo"><div class="vazio">Ainda não há resumo. O primeiro sai no dia 1º do mês que vem, 5h.</div></div>
+  </div>
+
+  <div class="card">
     <h3>Uso por agente</h3>
     <div id="dashAgentes"></div>
   </div>
@@ -386,7 +412,7 @@ td{padding:8px;border-bottom:1px solid var(--linha)}
 
 <script>
 'use strict';
-const VERSAO = '4.3.0';
+const VERSAO = '4.5.0';
 
 // firebaseConfig EMBUTIDO — a apiKey web é pública por design. Nunca mais colar nada.
 const FB = {
@@ -461,9 +487,10 @@ document.querySelectorAll('nav button').forEach(b => {
     document.querySelectorAll('nav button').forEach(x => x.classList.remove('on'));
     document.querySelectorAll('.pag').forEach(x => x.classList.remove('on'));
     b.classList.add('on'); $('p-' + b.dataset.p).classList.add('on');
+    if (b.dataset.p === 'chat') renderHistorico();
     if (b.dataset.p === 'agentes') renderMatriz();
     if (b.dataset.p === 'kosmos') renderKosMos();
-    if (b.dataset.p === 'dash') renderDash();
+    if (b.dataset.p === 'dash') { renderDash(); renderResumos(); renderAbsorvido(); }
     if (b.dataset.p === 'cerebro') renderCerebro();
     if (b.dataset.p === 'modelos') renderModelos();
   };
@@ -481,6 +508,7 @@ async function carregarTudo() {
 
 // ══════════ CHAT ══════════
 let conversa = [], agenteFoco = null;
+let sessaoId = 'ses_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
 function saudacao() {
   if (!conversa.length) {
@@ -530,7 +558,7 @@ function setFoco(id) {
   $('focoAtual').className = 'pill ' + (a ? 'mos' : 'kos');
 }
 $('btnVoltarMatriz').onclick = () => { setFoco(null); addMsg('Foco de volta na matriz principal.', 'sis'); };
-$('btnLimpar').onclick = () => { conversa = []; $('chatArea').innerHTML = ''; saudacao(); };
+$('btnLimpar').onclick = () => { conversa = []; sessaoId = 'ses_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); $('chatArea').innerHTML = ''; saudacao(); };
 $('chatIn').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarChat(); } };
 $('chatEnviar').onclick = enviarChat;
 
@@ -572,6 +600,7 @@ async function enviarChat() {
       body: JSON.stringify({
         sistema: 'console',
         agente: agenteFoco || 'turia',
+        sessao: sessaoId,
         mensagens: conversa.slice(-16)
       })
     });
@@ -609,6 +638,116 @@ $('kosOk').onclick = async () => {
     addMsg('✅ Gravado no KOS como [uid: ' + uid + '] por ' + S.email + '. A IA já pode citar isso.', 'sis');
   } catch (e) { toast('Erro ao gravar: ' + (e.message || e), 'er'); }
 };
+
+// ══════════ HISTÓRICO DAS CONVERSAS (só do Console) ══════════
+function mesAnterior() { const d = new Date(); d.setUTCMonth(d.getUTCMonth() - 1); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0'); }
+$('histRefresh').onclick = renderHistorico;
+async function renderHistorico() {
+  try {
+    let todos = [];
+    for (const m of [mesAtual(), mesAnterior()]) {
+      const o = (await D.ler('dialogos/console/' + m)) || {};
+      Object.keys(o).forEach(k => { const d = o[k]; if (d && d.ts) todos.push(d); });
+    }
+    if (!todos.length) { $('histLista').innerHTML = '<div class="vazio">Nenhuma conversa registrada ainda.</div>'; return; }
+    const ses = {};
+    todos.sort((a, b) => a.ts - b.ts).forEach(d => { (ses[d.sessao] = ses[d.sessao] || []).push(d); });
+    const ordem = Object.keys(ses).sort((a, b) => ses[b][0].ts - ses[a][0].ts);
+    $('histLista').innerHTML = ordem.slice(0, 30).map((sid, i) => {
+      const msgs = ses[sid];
+      const q = new Date(msgs[0].ts);
+      const ags = Array.from(new Set(msgs.map(m => m.agente)));
+      return '<div class="reg">' +
+        '<div class="cab" style="cursor:pointer" data-toggle="' + i + '">' +
+        '<span class="tt">' + q.toLocaleDateString('pt-BR') + ' ' + q.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + '</span>' +
+        '<span class="pill">' + msgs.length + ' msg</span>' +
+        '<span class="pill kos">' + esc(ags.join(', ')) + '</span>' +
+        (msgs.some(m => m.risco) ? '<span class="pill al">⚠ revisar</span>' : '') +
+        '<span class="pill">' + esc(String(msgs[0].pergunta || '').slice(0, 55)) + '…</span>' +
+        '<button class="btn mini f fix">abrir</button></div>' +
+        '<div id="hist-' + i + '" class="esconde" style="margin-top:8px">' +
+        msgs.map(m => '<div style="border-left:2px solid var(--linha);padding:6px 0 6px 10px;margin-bottom:8px">' +
+          '<div style="font-size:12.5px"><b>Você:</b> ' + esc(m.pergunta) + '</div>' +
+          '<div style="font-size:12.5px;color:var(--tinta2);margin-top:4px"><b>TurIA:</b> ' + esc(m.resposta) + '</div>' +
+          '<div class="carimbo" style="margin:4px 0 0">' + esc(m.provedor + ' · ' + m.modelo) + (m.kos ? ' · KOS: ' + m.kos : '') + (m.escalado ? ' · ⚡ escalado' : '') +
+          (m.removidos ? ' · 🔒 removido: ' + esc(m.removidos.join(', ')) : '') + '</div></div>').join('') +
+        '</div></div>';
+    }).join('');
+  } catch (e) { toast('Erro no histórico: ' + (e.message || e), 'er'); }
+}
+$('histLista').addEventListener('click', (e) => {
+  const cab = e.target.closest('[data-toggle]'); if (!cab) return;
+  const box = $('hist-' + cab.dataset.toggle); if (box) box.classList.toggle('esconde');
+});
+
+// ══════════ RESUMO SEMANAL ══════════
+async function renderResumos() {
+  try {
+    const tipo = $('semTipo').value;
+    const o = (await D.ler('resumos/' + tipo)) || {};
+    const chaves = Object.keys(o).filter(k => k[0] !== '_').sort().reverse();
+    if (!chaves.length) { $('semSel').innerHTML = ''; $('semConteudo').innerHTML = '<div class="vazio">Ainda não há resumo ' + tipo + '.</div>'; return; }
+    $('semSel').innerHTML = chaves.map(k => '<option value="' + esc(k) + '">' + esc(k) + '</option>').join('');
+    window._resumos = o;
+    mostrarResumo();
+  } catch (e) { }
+}
+$('semSel').onchange = mostrarResumo;
+$('semTipo').onchange = renderResumos;
+
+// Só o NÚMERO do que veio dos sistemas — o conteúdo fica oculto, como combinado.
+async function renderAbsorvido() {
+  try {
+    const dias = [];
+    for (let i = 0; i < 30; i++) { const d = new Date(Date.now() - i * 86400000); dias.push(d.toISOString().slice(0, 10)); }
+    let conversas = 0, vendas = 0, sistemas = {}, bruto = 0;
+    for (const d of dias.slice(0, 30)) {
+      const o = (await D.ler('sessoes/' + d)) || {};
+      Object.keys(o).forEach(k => {
+        const s = o[k]; if (!s) return;
+        conversas++; sistemas[s.sistema] = true;
+        if (s.desfecho === 'venda') vendas++;
+        bruto += (s.msgs || 0);
+      });
+    }
+    $('absKpi').innerHTML =
+      '<div class="b"><div class="n">' + conversas + '</div><div class="l">Conversas (30 dias)</div></div>' +
+      '<div class="b"><div class="n">' + bruto + '</div><div class="l">Mensagens registradas</div></div>' +
+      '<div class="b"><div class="n">' + vendas + '</div><div class="l">Viraram venda</div></div>' +
+      '<div class="b"><div class="n">' + Object.keys(sistemas).length + '</div><div class="l">Sistemas alimentando</div></div>';
+  } catch (e) { $('absKpi').innerHTML = '<div class="vazio">—</div>'; }
+}
+function mostrarResumo() {
+  const r = (window._resumos || {})[$('semSel').value];
+  if (!r) return;
+  if (r.status !== 'pronto') { $('semConteudo').innerHTML = '<div class="vazio">' + esc(r.resumo || r.erro || 'Sem resumo nesta semana.') + '</div>'; return; }
+  const m = r.medidas || {};
+  const top = (obj, n) => Object.keys(obj || {}).sort((a, b) => obj[b] - obj[a]).slice(0, n).map(k => k + ' (' + obj[k] + ')').join(', ') || '—';
+  $('semConteudo').innerHTML =
+    '<div class="linha" style="margin-bottom:10px"><span class="pill">' + r.total + ' interações</span>' +
+    '<span class="pill ' + (m.semKos > m.comKos ? 'al' : 'ok') + '">' + (m.semKos || 0) + ' sem lastro na memória</span>' +
+    '<span class="pill">' + (m.escalados || 0) + ' escalonamentos</span>' +
+    '<span class="pill kos">por ' + esc(r.analisadoPor || '?') + '</span></div>' +
+    (r.alertas && r.alertas.length ? '<div class="aviso" style="border-left-color:var(--perigo);margin-bottom:10px"><b>⚠️ Alertas:</b><br>' + r.alertas.map(a => '• ' + esc(a)).join('<br>') + '</div>' : '') +
+    '<div style="white-space:pre-wrap;font-size:13.5px;line-height:1.6">' + esc(r.resumo) + '</div>' +
+    '<div class="linha" style="margin-top:12px"><span class="pill">idade: ' + esc(top(m.demografia && m.demografia.faixaEtaria, 3)) + '</span>' +
+    '<span class="pill">estado: ' + esc(top(m.demografia && m.demografia.estado, 3)) + '</span>' +
+    '<span class="pill">gênero: ' + esc(top(m.demografia && m.demografia.genero, 2)) + '</span></div>' +
+    (r.padroes && r.padroes.length ? '<div class="card" style="margin:10px 0 0;background:#FCFDFE"><b style="font-size:13px">📊 Padrões observados</b>' +
+      r.padroes.map(p => '<div class="reg" style="margin-top:8px"><div class="cab"><span class="tt">' + esc(p.padrao || '') + '</span>' +
+        (p.ocorrencias ? '<span class="pill ok">' + p.ocorrencias + '×</span>' : '') + '</div>' +
+        '<div class="tx"><b>Evidência:</b> ' + esc(p.evidencia || '') + (p.acao ? '<br><b>Ação:</b> ' + esc(p.acao) : '') + '</div></div>').join('') + '</div>' : '') +
+    (r.sazonalidade && r.sazonalidade.length ? '<div class="card" style="margin:10px 0 0;background:#FCFDFE"><b style="font-size:13px">📅 Sazonalidade</b>' +
+      r.sazonalidade.map(p => '<div class="reg" style="margin-top:8px"><div class="cab"><span class="tt">' + esc(p.periodo || '') + '</span></div><div class="tx">' + esc(p.padrao || '') + '<br><i>' + esc(p.evidencia || '') + '</i></div></div>').join('') + '</div>' : '') +
+    (r.tendencias && r.tendencias.length ? '<div class="aviso" style="margin-top:10px"><b>📈 Tendências:</b><br>' + r.tendencias.map(t => '• ' + esc(t.tendencia || '') + ' — <i>' + esc(t.evidencia || '') + '</i>').join('<br>') + '</div>' : '') +
+    (r.produto && r.produto.length ? '<div class="aviso" style="margin-top:10px"><b>💡 Sobre o produto:</b><br>' + r.produto.map(p => '• ' + esc(p)).join('<br>') + '</div>' : '') +
+    (r.recomendacoes && r.recomendacoes.length ? '<div class="aviso" style="margin-top:10px"><b>🎯 Recomendações:</b><br>' + r.recomendacoes.map(p => '• ' + esc(p)).join('<br>') + '</div>' : '') +
+    (r.comissaoMediaMercado ? '<div class="linha" style="margin-top:10px"><span class="pill kos">comissão média do mercado: ' + r.comissaoMediaMercado + '% (dado anônimo)</span></div>' : '') +
+    (r.memoriasPropostas && r.memoriasPropostas.length ? '<div class="aviso" style="margin-top:10px">🧠 <b>' + r.memoriasPropostas.length + ' memória(s) proposta(s)</b> — veja no KosMos para aprovar.</div>' : '') +
+    (r.prompts && r.prompts.length ? '<div class="card" style="margin:10px 0 0;background:#FCFDFE"><b style="font-size:13px">✍️ Melhorias de prompt sugeridas</b>' +
+      r.prompts.map(p => '<div class="reg" style="margin-top:8px"><div class="cab"><span class="tt">' + esc(p.agente) + '</span></div>' +
+        '<div class="tx"><b>Problema:</b> ' + esc(p.problema || '') + '<br><b>Sugestão:</b> ' + esc(p.sugestao || '') + '</div></div>').join('') + '</div>' : '');
+}
 
 // ══════════ MATRIZ GLOBAL (o prompt-mãe) ══════════
 async function renderMatriz() {
