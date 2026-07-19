@@ -1,609 +1,1684 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TurIA — Console</title>
+<title>TurIA — Console · Desenrola Digital</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script>
-/* ============================================================================
-   CONFIGURAÇÃO — edite estas 3 linhas UMA vez e salve (é só o que precisa).
-   Também dá para preencher pela engrenagem (Config) dentro do console.
-   ---------------------------------------------------------------------------
-   1) dbUrl    : o endereço do banco do cérebro (já vem preenchido).
-   2) token    : cole aqui um token de leitura do Firebase se o seu banco
-                 exigir (regras fechadas). Se estiver aberto para leitura,
-                 pode deixar em branco.
-   3) gatewayUrl: o endereço da função iaCentral (só é usado para APROVAR
-                 uma variante A/B). Deixe em branco se não for usar.
-   ========================================================================== */
-window.CFG = {
-  dbUrl:      "https://desenrola-turia-default-rtdb.firebaseio.com",
-  token:      "",
-  gatewayUrl: ""
-};
-</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
-/* ============================================================================
-   BLOCO DO TEMA (CANON) — padrão white-label Desenrola Digital.
-   As 3 cores mandam em tudo; todo o resto sai delas por color-mix.
-   Observação: para a bateria de testes bater "byte a byte", o :root oficial
-   deve ser copiado do GuiD. Este reproduz fielmente a receita do manual.
-   ========================================================================== */
+/* ================= TEMA (novo) — as 3 cores mandam; resto sai por color-mix ============ */
 :root{
-  /* --- as 3 sementes --- */
-  --navy:#0A0E20;      /* fundo de tudo */
-  --orange:#D44A00;    /* ação e identidade (o "D") */
-  --glow:#2E50C8;      /* destaque frio (foco, links, gráficos) */
-
-  /* --- 6 níveis de vidro (do navy, clareando) --- */
-  --g05:color-mix(in srgb, var(--navy) 95%, #fff 5%);
-  --g06:color-mix(in srgb, var(--navy) 94%, #fff 6%);
-  --g09:color-mix(in srgb, var(--navy) 91%, #fff 9%);
-  --g14:color-mix(in srgb, var(--navy) 86%, #fff 14%);
-  --g22:color-mix(in srgb, var(--navy) 78%, #fff 22%);
-  --g34:color-mix(in srgb, var(--navy) 66%, #fff 34%);
-  --navy-lift:color-mix(in srgb, var(--navy) 88%, #fff 12%);
-
-  /* --- texto --- */
-  --ink:color-mix(in srgb, #fff 92%, var(--navy) 8%);
-  --ink-2:color-mix(in srgb, #fff 64%, var(--navy) 36%);
-  --ink-3:color-mix(in srgb, #fff 42%, var(--navy) 58%);
-
-  /* --- tons de ação --- */
-  --orange-soft:color-mix(in srgb, var(--orange) 18%, var(--navy) 82%);
-  --glow-soft:color-mix(in srgb, var(--glow) 20%, var(--navy) 80%);
-  --ok:#2FBF71; --warn:#E4B53C; --bad:#E5484D; --info:var(--glow);
-
-  /* --- pontes (nomes antigos apontando para os novos) --- */
-  --primary:var(--navy-lift);
-  --surface:var(--g05);
-  --surface-2:var(--g09);
-  --border:color-mix(in srgb, #fff 14%, transparent);
-  --border-soft:color-mix(in srgb, #fff 8%, transparent);
-  --accent:var(--orange);
+  --navy:#0A0E20; --orange:#D44A00; --glow:#2E50C8;
+  --g05:color-mix(in srgb,var(--navy) 95%,#fff 5%);
+  --g06:color-mix(in srgb,var(--navy) 94%,#fff 6%);
+  --g09:color-mix(in srgb,var(--navy) 91%,#fff 9%);
+  --g14:color-mix(in srgb,var(--navy) 86%,#fff 14%);
+  --g22:color-mix(in srgb,var(--navy) 78%,#fff 22%);
+  --navy-lift:color-mix(in srgb,var(--navy) 88%,#fff 12%);
+  --ink:color-mix(in srgb,#fff 92%,var(--navy) 8%);
+  --ink-2:color-mix(in srgb,#fff 64%,var(--navy) 36%);
+  --ink-3:color-mix(in srgb,#fff 42%,var(--navy) 58%);
+  --surface:var(--g05); --surface-2:var(--g09);
+  --border:color-mix(in srgb,#fff 14%,transparent);
+  --border-soft:color-mix(in srgb,#fff 8%,transparent);
+  --ok:#2FBF71; --warn:#E4B53C; --bad:#E5484D;
   --radius:12px; --radius-lg:20px; --radius-pill:999px;
-
-  /* --- 7 sombras (sh1 leve → sh6 modal) + anel de foco --- */
-  --sh1:0 1px 2px rgba(0,0,0,.25);
-  --sh2:0 2px 6px rgba(0,0,0,.30);
-  --sh3:0 6px 16px rgba(0,0,0,.35);
-  --sh4:0 10px 26px rgba(0,0,0,.40);
-  --sh5:0 18px 40px rgba(0,0,0,.45);
-  --sh6:0 28px 60px rgba(0,0,0,.55);
-  --ring:0 0 0 3px color-mix(in srgb, var(--glow) 55%, transparent);
-  --sh-orange:0 6px 18px color-mix(in srgb, var(--orange) 45%, transparent);
+  --sh1:0 1px 2px rgba(0,0,0,.25); --sh2:0 2px 6px rgba(0,0,0,.30);
+  --sh3:0 6px 16px rgba(0,0,0,.35); --sh4:0 10px 26px rgba(0,0,0,.40);
+  --sh5:0 18px 40px rgba(0,0,0,.45); --sh6:0 28px 60px rgba(0,0,0,.55);
+  --ring:0 0 0 3px color-mix(in srgb,var(--glow) 55%,transparent);
+  --sh-orange:0 6px 18px color-mix(in srgb,var(--orange) 45%,transparent);
+  --sh-hover:0 16px 40px color-mix(in oklab,var(--glow),transparent 52%);
+  /* PONTES — nomes antigos apontando para o tema novo (o HTML gerado pelo JS re-tinge sozinho) */
+  --azul:var(--orange); --magic:var(--orange); --sol:var(--warn); --verde:var(--ok); --perigo:var(--bad);
+  --tinta:var(--ink); --tinta2:var(--ink-3); --linha:var(--border-soft); --branco:var(--g05);
+  --fundo:var(--navy); --r:12px; --sombra:var(--sh1);
 }
-
-*{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{
-  font-family:"Nunito",system-ui,sans-serif;
-  color:var(--ink);
-  background:
-    radial-gradient(1200px 700px at 85% -10%, color-mix(in srgb,var(--glow) 10%, transparent), transparent 60%),
-    radial-gradient(900px 600px at -10% 110%, color-mix(in srgb,var(--orange) 8%, transparent), transparent 55%),
-    var(--navy);
-  background-attachment:fixed;
+html[data-theme="light"]{
+  --navy-lift:color-mix(in oklab,var(--glow),white 86%);
+  --ink:color-mix(in oklab,var(--navy),white 6%);
+  --ink-2:color-mix(in oklab,var(--navy),white 32%);
+  --ink-3:color-mix(in oklab,var(--navy),#8FA3BB 50%);
+  --g05:color-mix(in oklab,var(--navy),transparent 96%);
+  --g06:color-mix(in oklab,var(--navy),transparent 93.5%);
+  --g09:color-mix(in oklab,var(--navy),transparent 90%);
+  --g14:color-mix(in oklab,var(--navy),transparent 84%);
+  --g22:color-mix(in oklab,var(--navy),transparent 74%);
+  --border:color-mix(in oklab,var(--navy),transparent 85%);
+  --border-soft:color-mix(in oklab,var(--navy),transparent 91%);
+  --sh1:0 1px 2px color-mix(in oklab,var(--navy),transparent 90%);
+  --sh3:0 8px 20px color-mix(in oklab,var(--navy),transparent 88%);
+  --sh4:0 12px 28px color-mix(in oklab,var(--navy),transparent 86%);
+  --sh6:0 30px 60px color-mix(in oklab,var(--navy),transparent 82%);
 }
-h1,h2,h3{font-family:"Montserrat",sans-serif;margin:0;font-weight:700;letter-spacing:.2px}
+html[data-theme="light"] body{
+  background:radial-gradient(1000px 640px at 85% -10%,color-mix(in oklab,var(--glow),transparent 90%),transparent 60%),
+    radial-gradient(820px 560px at -10% 110%,color-mix(in oklab,var(--orange),transparent 92%),transparent 55%),
+    color-mix(in oklab,var(--navy),white 96%);
+}
+body,.side,.reg,input,select,textarea,.pill,.tag,.frow,.msg.ia,.msg.sis,.toast,th,td,.aviso,#chatArea,.btn.f,.side nav button{transition:background-color .25s ease, color .25s ease, border-color .25s ease}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms!important; transition-duration:.001ms!important}
+  .spin{animation:sp .9s linear infinite!important}
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:"Nunito",system-ui,sans-serif;color:var(--ink);font-size:15px;line-height:1.55;
+  background:radial-gradient(1200px 700px at 85% -10%,color-mix(in srgb,var(--glow) 10%,transparent),transparent 60%),
+    radial-gradient(900px 600px at -10% 110%,color-mix(in srgb,var(--orange) 8%,transparent),transparent 55%),var(--navy);
+  background-attachment:fixed}
+h1,h2,h3{font-family:"Montserrat",sans-serif;font-weight:700}
 a{color:var(--glow);text-decoration:none}
-button{font-family:inherit}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px}
 
-/* --- layout --- */
-.app{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
-@media(max-width:820px){.app{grid-template-columns:1fr}.side{position:fixed;z-index:40;left:-260px;top:0;bottom:0;transition:left .22s}.side.open{left:0}.scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:35}.scrim.on{display:block}}
+/* ================= LOGIN (novo) ================= */
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;z-index:100;
+  background:radial-gradient(900px 600px at 80% -10%,color-mix(in srgb,var(--glow) 18%,transparent),transparent 55%),
+    radial-gradient(700px 500px at 0% 110%,color-mix(in srgb,var(--orange) 14%,transparent),transparent 55%),var(--navy)}
+#login .cx{background:var(--g06);border:1px solid var(--border-soft);border-radius:22px;padding:34px 30px;width:100%;max-width:410px;box-shadow:var(--sh6)}
+#login .dlogo{width:64px;height:64px;border-radius:18px;margin:0 auto 16px;display:grid;place-items:center;background:var(--orange);box-shadow:var(--sh-orange)}
+#login .dlogo span{font-family:"Anton";font-size:38px;color:#fff;transform:translateY(2px)}
+#login .marca{font-family:"Anton",sans-serif;font-size:36px;letter-spacing:1px;text-align:center;line-height:1}
+#login .sub{text-align:center;color:var(--ink-3);font-size:11.5px;letter-spacing:2px;text-transform:uppercase;margin:6px 0 26px}
+#login label{display:block;font-size:11.5px;font-weight:800;color:var(--ink-3);text-transform:uppercase;letter-spacing:.5px;margin:15px 0 6px}
+#login input{width:100%;height:44px;padding:0 14px;border:1px solid var(--border);border-radius:12px;background:var(--g09);color:var(--ink)}
+#login input:focus{outline:none;border-color:var(--glow);box-shadow:var(--ring)}
+#login button{width:100%;height:46px;margin-top:22px;background:var(--orange);color:#fff;border:0;border-radius:12px;font-weight:800;cursor:pointer;box-shadow:var(--sh-orange)}
+#login button:hover{filter:brightness(1.06)}
+#login button:disabled{opacity:.6;cursor:wait}
+#login .erro{margin-top:14px;padding:11px 13px;background:color-mix(in srgb,var(--bad) 16%,transparent);border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);border-radius:10px;color:color-mix(in srgb,var(--bad) 90%,#fff);font-size:13px;display:none}
+#login .nota{margin-top:18px;font-size:11.5px;color:var(--ink-3);text-align:center;line-height:1.6}
 
-/* --- sidebar --- */
-.side{background:var(--g06);border-right:1px solid var(--border-soft);display:flex;flex-direction:column;gap:6px;padding:16px 12px}
-.brand{display:flex;align-items:center;gap:12px;padding:8px 8px 14px;border-bottom:1px solid var(--border-soft);margin-bottom:8px}
-.brand .logo{width:44px;height:44px;border-radius:12px;flex:0 0 auto;display:grid;place-items:center;background:var(--orange);box-shadow:var(--sh-orange);overflow:hidden}
-.brand .logo span{font-family:"Anton",sans-serif;font-size:26px;color:#fff;line-height:1;transform:translateY(1px)}
-.brand .logo img{width:100%;height:100%;object-fit:cover}
-.brand .who b{display:block;font-family:"Montserrat";font-weight:700;font-size:15px}
-.brand .who small{color:var(--ink-3);font-size:11.5px}
-.nav{display:flex;flex-direction:column;gap:2px;margin-top:4px}
-.nav a{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:12px;color:var(--ink-2);font-weight:700;font-size:14px;cursor:pointer;border:1px solid transparent}
-.nav a:hover{background:var(--g09);color:var(--ink)}
-.nav a.active{background:color-mix(in srgb,var(--orange) 16%, transparent);color:var(--ink);border-color:color-mix(in srgb,var(--orange) 32%, transparent)}
-.nav a.active .ic{background:var(--orange)}
-.side .foot{margin-top:auto;color:var(--ink-3);font-size:11px;padding:8px}
+/* ================= SHELL / SIDEBAR / MAIN ================= */
+#app{display:none}
+.shell{display:grid;grid-template-columns:250px 1fr;min-height:100vh}
+.side{background:var(--g06);border-right:1px solid var(--border-soft);display:flex;flex-direction:column;padding:16px 12px}
+.side .brand{display:flex;align-items:center;gap:12px;padding:6px 6px 14px;border-bottom:1px solid var(--border-soft)}
+.side .brand .dbox{width:44px;height:44px;border-radius:12px;flex:0 0 auto;display:grid;place-items:center;background:var(--orange);box-shadow:var(--sh-orange)}
+.side .brand .dbox span{font-family:"Anton";font-size:26px;color:#fff;transform:translateY(1px)}
+.side .brand b{display:block;font-family:"Anton",sans-serif;font-size:22px;letter-spacing:.5px;line-height:1}
+.side .brand small{color:var(--ink-3);font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
+.side nav{display:flex;flex-direction:column;gap:3px;margin-top:8px}
+.side nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:transparent;border:1px solid transparent;color:var(--ink-2);padding:11px 11px;border-radius:12px;font-weight:700;font-size:14.5px;cursor:pointer}
+.side nav button:hover{background:var(--g09);color:var(--ink)}
+.side nav button.on{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--ink);border-color:color-mix(in srgb,var(--orange) 32%,transparent)}
+.side nav button::before{content:"";width:19px;height:19px;flex:0 0 auto;background:currentColor;-webkit-mask:center/contain no-repeat;mask:center/contain no-repeat;opacity:.9}
+.side nav button.on::before{background:var(--orange);opacity:1}
+.side .foot{margin-top:auto;padding:12px 8px 4px;border-top:1px solid var(--border-soft);display:flex;flex-direction:column;gap:8px}
+.side .foot .who{font-size:12px;color:var(--ink-3);word-break:break-all}
+.side .foot button{background:var(--g14);border:1px solid var(--border);color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:800;font-size:12.5px}
+.side .foot button:hover{background:var(--g22)}
 
-/* --- header --- */
 .main{min-width:0;display:flex;flex-direction:column}
-.head{display:flex;align-items:center;gap:12px;padding:18px 22px;border-bottom:1px solid var(--border-soft);position:sticky;top:0;background:color-mix(in srgb,var(--navy) 82%, transparent);backdrop-filter:blur(8px);z-index:20}
-.head .burger{display:none;width:38px;height:38px;border-radius:12px;background:var(--g09);border:1px solid var(--border);align-items:center;justify-content:center;cursor:pointer}
-@media(max-width:820px){.head .burger{display:flex}}
-.head h1{font-size:19px;flex:1;font-family:"Anton",sans-serif;font-weight:400;letter-spacing:.6px}
-.head .sub{color:var(--ink-3);font-weight:600;font-size:12.5px;margin-top:2px}
-.btn{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 15px;border-radius:var(--radius-pill);border:1px solid transparent;font-weight:800;font-size:13.5px;cursor:pointer;background:var(--g14);color:var(--ink)}
-.btn:hover{background:var(--g22)}
-.btn.pri{background:var(--orange);color:#fff;box-shadow:var(--sh-orange)}
-.btn.pri:hover{filter:brightness(1.06)}
-.btn.ghost{background:transparent;border-color:var(--border)}
-.bell{width:38px;height:38px;border-radius:12px;background:var(--g09);border:1px solid var(--border);display:grid;place-items:center;cursor:pointer;position:relative}
-.bell .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--orange);box-shadow:0 0 0 2px var(--navy)}
+.topbar{display:none;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border-soft);position:sticky;top:0;background:color-mix(in srgb,var(--navy) 82%,transparent);backdrop-filter:blur(8px);z-index:30}
+.burger{width:40px;height:40px;border-radius:12px;background:var(--g09);border:1px solid var(--border);display:grid;place-items:center;cursor:pointer}
+.burger::before{content:"";width:20px;height:20px;background:currentColor;-webkit-mask:center/contain no-repeat url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z'/></svg>");mask:center/contain no-repeat url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z'/></svg>")}
+.topbar b{font-family:"Anton";font-size:20px;letter-spacing:.5px}
+main{max-width:1180px;width:100%;margin:0 auto;padding:24px 22px 70px}
 
-/* --- content --- */
-.wrap{padding:22px;display:none;animation:fade .25s}
-.wrap.show{display:block}
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr}
+  .side{position:fixed;z-index:60;left:-270px;top:0;bottom:0;width:250px;transition:left .22s;box-shadow:var(--sh6)}
+  .side.open{left:0}
+  .topbar{display:flex}
+  .scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:55}
+  .scrim.on{display:block}
+}
+
+/* ================= PÁGINAS (re-tingindo classes antigas) ================= */
+.pag{display:none;animation:fade .25s} .pag.on{display:block}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-@media(max-width:1100px){.grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.grid{grid-template-columns:1fr}}
-.col2{grid-column:span 2}.col4{grid-column:span 4}
-@media(max-width:1100px){.col2,.col4{grid-column:span 2}}
-@media(max-width:560px){.col2,.col4{grid-column:span 1}}
-
-.card{background:var(--g05);border:1px solid var(--border-soft);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--sh1);transition:transform .16s, box-shadow .16s}
-.card:hover{transform:translateY(-2px);box-shadow:var(--sh3)}
-.card h3{font-size:13px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.7px;font-family:"Montserrat";font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.kpi{font-family:"Anton",sans-serif;font-weight:400;font-size:38px;line-height:1;letter-spacing:.5px}
-.kpi small{font-family:"Nunito";font-weight:800;font-size:15px;color:var(--ink-3);margin-left:4px}
-.trend{font-size:12.5px;color:var(--ink-3);font-weight:700;margin-top:8px}
-
-/* tabela */
-table{width:100%;border-collapse:collapse;font-size:13.5px}
-th{text-align:left;color:var(--ink-3);font-family:"Montserrat";font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.5px;padding:9px 10px;border-bottom:1px solid var(--border-soft)}
-td{padding:11px 10px;border-bottom:1px solid var(--border-soft)}
-tr:last-child td{border-bottom:none}
-tbody tr:hover{background:var(--g06)}
-.num{font-variant-numeric:tabular-nums;text-align:right}
-.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:var(--radius-pill);font-size:12px;font-weight:800;background:var(--g14)}
-.pill.ok{background:color-mix(in srgb,var(--ok) 20%,transparent);color:color-mix(in srgb,var(--ok) 88%,#fff)}
-.pill.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:color-mix(in srgb,var(--warn) 90%,#fff)}
-.pill.bad{background:color-mix(in srgb,var(--bad) 22%,transparent);color:color-mix(in srgb,var(--bad) 90%,#fff)}
-
-/* status dots (dot-cor) */
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:0 0 auto}
-.dot-verde{background:var(--ok)}.dot-amarelo{background:var(--warn)}.dot-vermelho{background:var(--bad)}.dot-azul{background:var(--glow)}
-
-/* barra de confiança */
-.bar{height:8px;border-radius:999px;background:var(--g14);overflow:hidden}
-.bar > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--orange),color-mix(in srgb,var(--orange) 60%,var(--glow)))}
-
-/* feed telemetria */
-.feed{display:flex;flex-direction:column;gap:2px}
-.row{display:flex;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid var(--border-soft);font-size:13px}
-.row:last-child{border-bottom:none}
-.row .who{font-weight:800}
-.row .meta{color:var(--ink-3);font-size:12px}
-.tag{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--g14);color:var(--ink-2)}
-
-/* empty / loading */
-.empty{padding:30px 18px;text-align:center;color:var(--ink-3)}
-.empty .ic{margin:0 auto 12px;width:34px;height:34px;background:var(--ink-3);opacity:.6}
+.tit{font-family:"Anton",sans-serif;font-size:30px;letter-spacing:.6px;color:var(--ink);margin-bottom:4px}
+.tit+p{color:var(--ink-3);font-size:13.5px;margin-bottom:20px;max-width:80ch}
+.card{background:var(--g05);border:1px solid var(--border-soft);border-radius:var(--radius-lg);padding:18px;margin-bottom:16px;box-shadow:var(--sh1);transition:transform .18s, box-shadow .18s, border-color .18s, background-color .25s, color .25s}
+.card:hover{transform:translateY(-3px);box-shadow:var(--sh-hover), var(--sh1);border-color:var(--g14)}
 .spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--g22);border-top-color:var(--orange);animation:sp .8s linear infinite;margin:22px auto}
 @keyframes sp{to{transform:rotate(360deg)}}
+.bar{height:8px;border-radius:999px;background:var(--g14);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--orange),color-mix(in srgb,var(--orange) 60%,var(--glow)))}
+.feed{display:flex;flex-direction:column;gap:2px}
+.frow{display:flex;align-items:center;gap:12px;padding:11px 6px;border-bottom:1px solid var(--border-soft);font-size:13px}
+.frow:last-child{border-bottom:none}
+.frow .who{font-weight:800}
+.frow .meta{color:var(--ink-3);font-size:12px}
+.tag{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--g14);color:var(--ink-2)}
+.sdot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.card h3{font-size:15px;margin-bottom:4px;font-family:"Montserrat";font-weight:700}
+.dica{color:var(--ink-3);font-size:12.5px;margin-bottom:12px}
+label{display:block;font-size:11px;font-weight:800;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;margin:10px 0 5px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--g09);color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--glow);box-shadow:var(--ring)}
+textarea{min-height:90px;resize:vertical;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.5}
+select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='%23888' d='M2 4l4 4 4-4z'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.btn{background:var(--orange);color:#fff;border:0;padding:10px 15px;border-radius:var(--radius-pill);font-weight:800;cursor:pointer;font-size:13.5px;box-shadow:var(--sh-orange)}
+.btn:hover{filter:brightness(1.07)}
+.btn.g{background:var(--ok);box-shadow:none} .btn.s{background:var(--warn);color:#241a00;box-shadow:none} .btn.p{background:var(--bad);box-shadow:none}
+.btn.f{background:var(--g14);color:var(--ink);border:1px solid var(--border);box-shadow:none}
+.btn.f:hover{background:var(--g22)}
+.btn.mini{padding:6px 11px;font-size:11.5px}
+.linha{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.linha>*{flex:1} .linha>.fix{flex:0 0 auto}
+.pill{display:inline-block;padding:3px 9px;border-radius:var(--radius-pill);font-size:10.8px;font-weight:800;background:var(--g14);color:var(--ink-2)}
+.pill.ok{background:color-mix(in srgb,var(--ok) 20%,transparent);color:color-mix(in srgb,var(--ok) 88%,#fff)}
+.pill.al{background:color-mix(in srgb,var(--warn) 20%,transparent);color:color-mix(in srgb,var(--warn) 90%,#fff)}
+.pill.er{background:color-mix(in srgb,var(--bad) 20%,transparent);color:color-mix(in srgb,var(--bad) 90%,#fff)}
+.pill.kos{background:color-mix(in srgb,var(--glow) 22%,transparent);color:color-mix(in srgb,var(--glow) 92%,#fff)}
+.pill.mos{background:color-mix(in srgb,var(--warn) 20%,transparent);color:color-mix(in srgb,var(--warn) 90%,#fff)}
+.reg{border:1px solid var(--border-soft);border-radius:12px;padding:12px;margin-bottom:8px;background:var(--g06)}
+.reg .cab{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:5px}
+.reg .tt{font-weight:800;font-size:13.5px;flex:1;min-width:120px}
+.reg .tx{font-size:12.5px;color:var(--ink-2);white-space:pre-wrap;max-height:120px;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10.8px;text-transform:uppercase;color:var(--ink-3);letter-spacing:.4px;padding:9px 8px;border-bottom:1px solid var(--border-soft);font-family:"Montserrat";font-weight:700}
+td{padding:10px 8px;border-bottom:1px solid var(--border-soft)}
+tbody tr:hover{background:var(--g06)}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpi .b{background:var(--g05);border:1px solid var(--border-soft);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--sh1);transition:transform .18s, box-shadow .18s, background-color .25s}
+.kpi .b:hover{transform:translateY(-3px);box-shadow:var(--sh-hover), var(--sh1)}
+.kpi .n{font-family:"Anton",sans-serif;font-size:30px;color:var(--ink);line-height:1.1}
+.kpi .l{font-size:10.8px;text-transform:uppercase;color:var(--ink-3);letter-spacing:.4px;margin-top:3px}
+.aviso{background:color-mix(in srgb,var(--glow) 12%,transparent);border-left:3px solid var(--glow);padding:10px 12px;border-radius:0 10px 10px 0;font-size:12.5px;color:var(--ink-2);margin-top:10px}
 
-/* config */
-.field{margin-bottom:14px}
-.field label{display:block;font-weight:800;font-size:13px;margin-bottom:6px}
-.field small{display:block;color:var(--ink-3);font-weight:600;font-size:12px;margin-bottom:7px}
-.field input{width:100%;height:42px;padding:0 13px;border-radius:12px;background:var(--g09);border:1px solid var(--border);color:var(--ink);font-family:inherit;font-size:14px}
-.field input:focus{outline:none;border-color:var(--glow);box-shadow:var(--ring)}
-.note{background:var(--glow-soft);border:1px solid color-mix(in srgb,var(--glow) 30%,transparent);border-radius:12px;padding:12px 14px;font-size:13px;color:var(--ink-2);margin-bottom:16px}
+/* chat */
+#chatArea{background:var(--g06);border:1px solid var(--border-soft);border-radius:var(--radius-lg);height:52vh;min-height:340px;overflow-y:auto;padding:16px;box-shadow:var(--sh1)}
+.msg{max-width:82%;padding:11px 14px;border-radius:14px;margin-bottom:10px;font-size:13.5px;white-space:pre-wrap;line-height:1.55}
+.msg.eu{background:var(--orange);color:#fff;margin-left:auto;border-bottom-right-radius:3px;box-shadow:var(--sh-orange)}
+.msg.ia{background:var(--g14);border-bottom-left-radius:3px}
+.msg.sis{background:color-mix(in srgb,var(--warn) 14%,transparent);border:1px solid color-mix(in srgb,var(--warn) 32%,transparent);font-size:12px;max-width:100%;color:color-mix(in srgb,var(--warn) 92%,#fff)}
+.carimbo{font-size:10.8px;color:var(--ink-3);margin:-6px 0 11px 3px}
+.foco{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:12.5px;flex-wrap:wrap}
+#kosConf{display:none;background:color-mix(in srgb,var(--ok) 12%,transparent);border:1px solid color-mix(in srgb,var(--ok) 40%,transparent);border-radius:12px;padding:14px;margin-top:12px}
+.esconde{display:none!important}
+.vazio{color:var(--ink-3);font-size:13px;padding:18px;text-align:center}
 
-/* A/B */
-.ab{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-@media(max-width:640px){.ab{grid-template-columns:1fr}}
-.ab .v{background:var(--g06);border:1px solid var(--border-soft);border-radius:16px;padding:16px}
-.ab .v.win{border-color:color-mix(in srgb,var(--ok) 45%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--ok) 30%,transparent)}
-.ab .v h4{margin:0 0 4px;font-family:"Montserrat";font-size:14px}
-.ab .v .big{font-family:"Anton";font-size:30px;margin:8px 0}
+/* toasts */
+#toasts{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--g22);color:var(--ink);border:1px solid var(--border);padding:11px 16px;border-radius:12px;font-size:13px;box-shadow:var(--sh4);font-weight:700}
+.toast.er{background:color-mix(in srgb,var(--bad) 30%,var(--navy));border-color:color-mix(in srgb,var(--bad) 50%,transparent)}
 
-/* ============================================================================
-   ÍCONES DE MÁSCARA (ic-nome) — desenho mora aqui, o código só chama <i class=ic-x>
-   ========================================================================== */
-.ic{width:18px;height:18px;flex:0 0 auto;background:currentColor;display:inline-block;
-    -webkit-mask:center/contain no-repeat;mask:center/contain no-repeat}
-.ic-dash{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M3 3h8v8H3zM13 3h8v5h-8zM13 10h8v11h-8zM3 13h8v8H3z'/></svg>")}
-.ic-bot{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2a1 1 0 011 1v2h3a3 3 0 013 3v2h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v1a3 3 0 01-3 3H8a3 3 0 01-3-3v-1H4a1 1 0 01-1-1v-3a1 1 0 011-1h1V8a3 3 0 013-3h3V3a1 1 0 011-1zM9 12a1.2 1.2 0 100 2.4A1.2 1.2 0 009 12zm6 0a1.2 1.2 0 100 2.4A1.2 1.2 0 0015 12z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2a1 1 0 011 1v2h3a3 3 0 013 3v2h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v1a3 3 0 01-3 3H8a3 3 0 01-3-3v-1H4a1 1 0 01-1-1v-3a1 1 0 011-1h1V8a3 3 0 013-3h3V3a1 1 0 011-1zM9 12a1.2 1.2 0 100 2.4A1.2 1.2 0 009 12zm6 0a1.2 1.2 0 100 2.4A1.2 1.2 0 0015 12z'/></svg>")}
-.ic-pulse{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M2 12h4l3 8 4-16 3 8h6'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M2 12h4l3 8 4-16 3 8h6'/></svg>")}
-.ic-mem{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2a7 7 0 00-7 7c0 2.2 1 3.6 2 5 .8 1 1 1.8 1 4h8c0-2.2.2-3 1-4 1-1.4 2-2.8 2-5a7 7 0 00-7-7zM9 21h6v1a1 1 0 01-1 1h-4a1 1 0 01-1-1z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2a7 7 0 00-7 7c0 2.2 1 3.6 2 5 .8 1 1 1.8 1 4h8c0-2.2.2-3 1-4 1-1.4 2-2.8 2-5a7 7 0 00-7-7zM9 21h6v1a1 1 0 01-1 1h-4a1 1 0 01-1-1z'/></svg>")}
-.ic-flask{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M9 2h6v2h-1v5l5 9a2 2 0 01-1.7 3H6.7A2 2 0 015 18l5-9V4H9z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M9 2h6v2h-1v5l5 9a2 2 0 01-1.7 3H6.7A2 2 0 015 18l5-9V4H9z'/></svg>")}
-.ic-gauge{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 4a9 9 0 00-8 13h16a9 9 0 00-8-13zm0 3a1 1 0 011 1v3.3l2.4 1.4a1 1 0 01-1 1.7l-3-1.7A1 1 0 0111 12V8a1 1 0 011-1z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 4a9 9 0 00-8 13h16a9 9 0 00-8-13zm0 3a1 1 0 011 1v3.3l2.4 1.4a1 1 0 01-1 1.7l-3-1.7A1 1 0 0111 12V8a1 1 0 011-1z'/></svg>")}
-.ic-gear{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 8a4 4 0 100 8 4 4 0 000-8zm9 4a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 00-2-1.2l-.4-2.6H9.9l-.4 2.6a7 7 0 00-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 003 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 002 1.2l.4 2.6h4.2l.4-2.6a7 7 0 002-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 8a4 4 0 100 8 4 4 0 000-8zm9 4a7 7 0 00-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 00-2-1.2l-.4-2.6H9.9l-.4 2.6a7 7 0 00-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 003 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 002 1.2l.4 2.6h4.2l.4-2.6a7 7 0 002-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z'/></svg>")}
-.ic-bell{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2a6 6 0 00-6 6c0 4-1.5 5.5-2 6.5-.3.7.2 1.5 1 1.5h14c.8 0 1.3-.8 1-1.5-.5-1-2-2.5-2-6.5a6 6 0 00-6-6zm0 20a3 3 0 002.8-2H9.2A3 3 0 0012 22z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2a6 6 0 00-6 6c0 4-1.5 5.5-2 6.5-.3.7.2 1.5 1 1.5h14c.8 0 1.3-.8 1-1.5-.5-1-2-2.5-2-6.5a6 6 0 00-6-6zm0 20a3 3 0 002.8-2H9.2A3 3 0 0012 22z'/></svg>")}
-.ic-refresh{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 5V2L7 6l5 4V7a5 5 0 11-5 5H5a7 7 0 107-7z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 5V2L7 6l5 4V7a5 5 0 11-5 5H5a7 7 0 107-7z'/></svg>")}
-.ic-menu{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z'/></svg>")}
-.ic-coin{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-1.2c-1.3-.2-2.3-.9-2.4-2.3h1.8c.1.6.6 1 1.6 1 .9 0 1.4-.4 1.4-1 0-.5-.4-.8-1.6-1.1-1.6-.4-2.9-.9-2.9-2.5 0-1.2.9-2 2.1-2.2V4h2v1.2c1.2.2 2.1.9 2.2 2.2h-1.8c-.1-.5-.5-.9-1.3-.9-.8 0-1.3.4-1.3.9 0 .5.5.7 1.7 1 1.6.4 2.8 1 2.8 2.6 0 1.2-.9 2-2.3 2.2V17z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-1.2c-1.3-.2-2.3-.9-2.4-2.3h1.8c.1.6.6 1 1.6 1 .9 0 1.4-.4 1.4-1 0-.5-.4-.8-1.6-1.1-1.6-.4-2.9-.9-2.9-2.5 0-1.2.9-2 2.1-2.2V4h2v1.2c1.2.2 2.1.9 2.2 2.2h-1.8c-.1-.5-.5-.9-1.3-.9-.8 0-1.3.4-1.3.9 0 .5.5.7 1.7 1 1.6.4 2.8 1 2.8 2.6 0 1.2-.9 2-2.3 2.2V17z'/></svg>")}
-.ic-map{ -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='black' d='M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z'/></svg>")}
+/* ===== ícones de linha (stroke, currentColor) ===== */
+.ic{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.16em;background:currentColor;-webkit-mask:center/contain no-repeat;mask:center/contain no-repeat}
+.ic-ai{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3l1.5 4.2L18 9l-4.5 1.8L12 15l-1.5-4.2L6 9l4.5-1.8Z'/><path d='M18.6 13.6l.6 1.7 1.8.6-1.8.7-.6 1.7-.7-1.7-1.8-.7 1.8-.6Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3l1.5 4.2L18 9l-4.5 1.8L12 15l-1.5-4.2L6 9l4.5-1.8Z'/><path d='M18.6 13.6l.6 1.7 1.8.6-1.8.7-.6 1.7-.7-1.7-1.8-.7 1.8-.6Z'/></svg>")}
+.ic-scroll{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M12 7.5V12l3.5 2'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M12 7.5V12l3.5 2'/></svg>")}
+.ic-layers{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3l9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16.5l9 5 9-5'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3l9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16.5l9 5 9-5'/></svg>")}
+.ic-star{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8L3.6 9.6l5.8-.8Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8L3.6 9.6l5.8-.8Z'/></svg>")}
+.ic-refresh{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6'/></svg>")}
+.ic-plug{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M9 3v4M15 3v4M6 7h12v3a6 6 0 0 1-12 0V7ZM12 16v5'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M9 3v4M15 3v4M6 7h12v3a6 6 0 0 1-12 0V7ZM12 16v5'/></svg>")}
+.ic-lock{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='4.5' y='10.5' width='15' height='10' rx='2.5'/><path d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='4.5' y='10.5' width='15' height='10' rx='2.5'/><path d='M8 10.5V7.5a4 4 0 0 1 8 0v3'/></svg>")}
+.ic-inbox{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5M12 4v9M8 9l4 4 4-4'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 13v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5M12 4v9M8 9l4 4 4-4'/></svg>")}
+.ic-alert{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 4.5 2.5 20h19L12 4.5ZM12 10v4.5M12 17.5h.01'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M12 4.5 2.5 20h19L12 4.5ZM12 10v4.5M12 17.5h.01'/></svg>")}
+.ic-bolt{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M13 3 5.5 13H11l-1 8 8.5-11H13l1-7Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M13 3 5.5 13H11l-1 8 8.5-11H13l1-7Z'/></svg>")}
+.ic-chart{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 21h16M6 21v-7M11 21V6M16 21v-10'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 21h16M6 21v-7M11 21V6M16 21v-10'/></svg>")}
+.ic-cal{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3.5' y='5' width='17' height='16' rx='2.5'/><path d='M3.5 9.5h17M8 3v4M16 3v4'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3.5' y='5' width='17' height='16' rx='2.5'/><path d='M3.5 9.5h17M8 3v4M16 3v4'/></svg>")}
+.ic-trend{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M3 16l5.5-5.5 3.5 3.5L21 5M21 5h-5M21 5v5'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M3 16l5.5-5.5 3.5 3.5L21 5M21 5h-5M21 5v5'/></svg>")}
+.ic-bulb{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M9.5 18h5M10.5 21h3'/><path d='M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .8 1.6v.6h5.6v-.6c0-.6.3-1.2.8-1.6A6 6 0 0 0 12 3Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M9.5 18h5M10.5 21h3'/><path d='M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .8 1.6v.6h5.6v-.6c0-.6.3-1.2.8-1.6A6 6 0 0 0 12 3Z'/></svg>")}
+.ic-target{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8'/><circle cx='12' cy='12' r='4'/><circle cx='12' cy='12' r='.6'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='8'/><circle cx='12' cy='12' r='4'/><circle cx='12' cy='12' r='.6'/></svg>")}
+.ic-pen{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4l10-10-4-4L4 16v4ZM13.5 6.5l4 4'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 20h4l10-10-4-4L4 16v4ZM13.5 6.5l4 4'/></svg>")}
+.ic-globe{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M2.8 9.5h18.4M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/><path d='M2.8 9.5h18.4M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18'/></svg>")}
+.ic-chat{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M5 5h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H10l-4 3v-3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M5 5h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H10l-4 3v-3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z'/></svg>")}
+.ic-link{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M9.5 14.5 14.5 9.5M10.5 6.5 12 5a3.5 3.5 0 0 1 5 5l-1.5 1.5M13.5 17.5 12 19a3.5 3.5 0 0 1-5-5l1.5-1.5'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M9.5 14.5 14.5 9.5M10.5 6.5 12 5a3.5 3.5 0 0 1 5 5l-1.5 1.5M13.5 17.5 12 19a3.5 3.5 0 0 1-5-5l1.5-1.5'/></svg>")}
+.ic-key{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='15.5' cy='8.5' r='4'/><path d='M12.5 11.5 4 20M7 16H4v3'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='15.5' cy='8.5' r='4'/><path d='M12.5 11.5 4 20M7 16H4v3'/></svg>")}
+.ic-tema{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='4.2'/><path d='M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4l1.4-1.4M18 6l1.4-1.4'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='4.2'/><path d='M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4l1.4-1.4M18 6l1.4-1.4'/></svg>")}
+/* nav icons (stroke, finos) */
+.side nav button[data-p="dash"]::before{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='7.5' height='7.5' rx='1.6'/><rect x='13.5' y='3' width='7.5' height='7.5' rx='1.6'/><rect x='13.5' y='13.5' width='7.5' height='7.5' rx='1.6'/><rect x='3' y='13.5' width='7.5' height='7.5' rx='1.6'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='3' width='7.5' height='7.5' rx='1.6'/><rect x='13.5' y='3' width='7.5' height='7.5' rx='1.6'/><rect x='13.5' y='13.5' width='7.5' height='7.5' rx='1.6'/><rect x='3' y='13.5' width='7.5' height='7.5' rx='1.6'/></svg>")}
+.side nav button[data-p="chat"]::before{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M5 5h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H10l-4 3v-3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M5 5h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H10l-4 3v-3H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z'/></svg>")}
+.side nav button[data-p="agentes"]::before{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='8' r='3.2'/><path d='M3.5 20a5.5 5.5 0 0 1 11 0'/><path d='M16 5.6a3 3 0 0 1 0 5.8M20.5 20a5 5 0 0 0-4-4.9'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='8' r='3.2'/><path d='M3.5 20a5.5 5.5 0 0 1 11 0'/><path d='M16 5.6a3 3 0 0 1 0 5.8M20.5 20a5 5 0 0 0-4-4.9'/></svg>")}
+.side nav button[data-p="kosmos"]::before{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><ellipse cx='12' cy='6' rx='7' ry='3'/><path d='M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><ellipse cx='12' cy='6' rx='7' ry='3'/><path d='M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6'/></svg>")}
+.side nav button[data-p="memoria"]::before{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M3 7h18M4 7l1 12a2 2 0 0 0 2 1.8h10a2 2 0 0 0 2-1.8L20 7M4 7l2-3h12l2 3M9.5 12h5'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M3 7h18M4 7l1 12a2 2 0 0 0 2 1.8h10a2 2 0 0 0 2-1.8L20 7M4 7l2-3h12l2 3M9.5 12h5'/></svg>")}
+.side nav button[data-p="modelos"]::before{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6h8M17 6h3M4 12h3M12 12h8M4 18h13M22 18h-1'/><circle cx='14' cy='6' r='2'/><circle cx='9' cy='12' r='2'/><circle cx='19' cy='18' r='2'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6h8M17 6h3M4 12h3M12 12h8M4 18h13M22 18h-1'/><circle cx='14' cy='6' r='2'/><circle cx='9' cy='12' r='2'/><circle cx='19' cy='18' r='2'/></svg>")}
+.side nav button[data-p="cerebro"]::before{-webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='7' y='7' width='10' height='10' rx='2'/><path d='M10 7V4M14 7V4M10 20v-3M14 20v-3M7 10H4M7 14H4M20 10h-3M20 14h-3'/></svg>");mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='7' y='7' width='10' height='10' rx='2'/><path d='M10 7V4M14 7V4M10 20v-3M14 20v-3M7 10H4M7 14H4M20 10h-3M20 14h-3'/></svg>")}
+.tema-btn{display:flex;align-items:center;gap:8px;justify-content:center;background:var(--g09);border:1px solid var(--border);color:var(--ink-2);padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:800;font-size:12.5px;transition:background-color .2s,color .2s}
+.tema-btn:hover{background:var(--g14);color:var(--ink)}
+.tema-btn .ic{width:16px;height:16px}
+
+/* ===== Painel de widgets ===== */
+.pnl-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.pnl-bar h3{margin:0;font-size:15px;display:flex;align-items:center;gap:7px}
+.pnl-bar .sp{flex:1}
+.pnl-grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:120px;gap:12px;grid-auto-flow:dense}
+@media(max-width:900px){.pnl-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.pnl-grid{grid-template-columns:1fr}}
+.wgt{position:relative;background:var(--g05);border:1px solid var(--border-soft);border-radius:16px;padding:14px;box-shadow:var(--sh1);display:flex;flex-direction:column;overflow:hidden;transition:transform .18s,box-shadow .18s,border-color .18s,background-color .25s}
+.wgt:hover{transform:translateY(-2px);box-shadow:var(--sh-hover),var(--sh1);border-color:var(--g14)}
+.wgt .wt{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-3);font-weight:800;display:flex;align-items:center;gap:6px;line-height:1.25}
+.wgt .wt .ic{width:14px;height:14px;flex:0 0 auto}
+.wgt .wv{font-family:"Anton",sans-serif;font-size:34px;line-height:1;margin-top:auto;color:var(--ink);word-break:break-word}
+.wgt .wsub{font-size:11px;color:var(--ink-3);margin-top:3px}
+.wgt.bar .wbars{display:flex;flex-direction:column;gap:9px;margin-top:12px;overflow:auto}
+.wgt .wrow{display:grid;grid-template-columns:1fr auto;gap:8px 10px;align-items:center;font-size:12px}
+.wgt .wrow .lb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
+.wgt .wrow .bar{grid-column:1/-1;margin-top:-2px}
+.wgt .wctl{position:absolute;top:8px;right:8px;display:none;gap:5px;align-items:center;z-index:2}
+.pnl-grid.editando .wgt{border-style:dashed;border-color:var(--g22);cursor:grab}
+.pnl-grid.editando .wgt .wctl{display:flex}
+.pnl-grid.editando .wgt:active{cursor:grabbing}
+.wgt.dragging{opacity:.35}
+.wgt.over{outline:2px dashed var(--orange);outline-offset:2px}
+.wctl button,.wctl select{background:var(--g14);border:1px solid var(--border);color:var(--ink);border-radius:8px;font-size:11px;font-weight:800;padding:3px 6px;cursor:pointer}
+.wctl .del{color:color-mix(in srgb,var(--bad) 92%,#fff);padding:3px 8px}
+/* modal */
+.pnl-modal{position:fixed;inset:0;z-index:90;background:rgba(3,6,18,.62);display:none;align-items:center;justify-content:center;padding:18px}
+.pnl-modal.on{display:flex}
+.pnl-box{background:var(--g06);border:1px solid var(--border);border-radius:20px;box-shadow:var(--sh6);max-width:660px;width:100%;max-height:88vh;overflow:auto;padding:22px}
+.pnl-tabs{display:flex;gap:6px;margin:14px 0;flex-wrap:wrap}
+.pnl-tabs button{background:var(--g09);border:1px solid var(--border);color:var(--ink-2);padding:8px 13px;border-radius:10px;font-weight:800;font-size:12.5px;cursor:pointer}
+.pnl-tabs button.on{background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--ink);border-color:color-mix(in srgb,var(--orange) 32%,transparent)}
+.pnl-cat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:560px){.pnl-cat{grid-template-columns:1fr}}
+.pnl-cat .it{text-align:left;background:var(--g05);border:1px solid var(--border-soft);border-radius:12px;padding:11px 12px;cursor:pointer;transition:border-color .15s,transform .15s;color:var(--ink)}
+.pnl-cat .it:hover{border-color:var(--orange);transform:translateY(-1px)}
+.pnl-cat .it b{display:block;font-size:13px}
+.pnl-cat .it span{font-size:11px;color:var(--ink-3)}
+.pnl-grp{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-3);font-weight:800;margin:14px 0 7px}
+
+.wgt .wv.sm{font-size:18px;line-height:1.18}
+.wgt.panel{padding-bottom:14px}
+.wgt.panel .wbody{overflow:auto;margin-top:10px;flex:1;min-height:0}
+.wgt.panel .wbody table{font-size:12px}
+.wgt.panel .wbody th{padding:6px 7px}
+.wgt.panel .wbody td{padding:7px}
+.wgt.panel .wbody .kpi{grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.wgt.panel .wbody .kpi .n{font-size:22px}
 </style>
 </head>
 <body>
-<div class="scrim" id="scrim" onclick="toggleSide(false)"></div>
-<div class="app">
 
-  <!-- ===================== SIDEBAR ===================== -->
-  <aside class="side" id="side">
-    <div class="brand">
-      <div class="logo" id="brandLogo"><span>D</span></div>
-      <div class="who"><b id="brandName">Desenrola Digital</b><small>TurIA · Console <span id="ver">v3.1.0</span></small></div>
-    </div>
-    <nav class="nav" id="nav">
-      <a data-view="overview" class="active"><i class="ic ic-dash"></i> Visão Geral</a>
-      <a data-view="agents"><i class="ic ic-bot"></i> Agentes</a>
-      <a data-view="telemetry"><i class="ic ic-pulse"></i> Telemetria</a>
-      <a data-view="memory"><i class="ic ic-mem"></i> Memória</a>
-      <a data-view="ab"><i class="ic ic-flask"></i> A/B de Prompt</a>
-      <a data-view="confidence"><i class="ic ic-gauge"></i> Confiança</a>
-      <a data-view="config"><i class="ic ic-gear"></i> Config</a>
-    </nav>
-    <div class="foot">Cérebro: <b id="proj">desenrola-turia</b></div>
-  </aside>
-
-  <!-- ===================== MAIN ===================== -->
-  <div class="main">
-    <header class="head">
-      <div class="burger" onclick="toggleSide(true)"><i class="ic ic-menu"></i></div>
-      <div style="flex:1;min-width:0">
-        <h1 id="pageTitle">Visão Geral</h1>
-        <div class="sub" id="pageSub">Panorama do cérebro hoje</div>
-      </div>
-      <button class="btn ghost" onclick="loadAll()"><i class="ic ic-refresh"></i> Atualizar</button>
-      <div class="bell" title="Notificações"><i class="ic ic-bell"></i><span class="dot"></span></div>
-    </header>
-
-    <!-- VISÃO GERAL -->
-    <section class="wrap show" data-view="overview">
-      <div class="grid">
-        <div class="card"><h3><i class="ic ic-pulse"></i> Chamadas hoje</h3><div class="kpi" id="kChamadas">—</div><div class="trend" id="kChamadasSub">carregando…</div></div>
-        <div class="card"><h3><i class="ic ic-coin"></i> Custo hoje</h3><div class="kpi" id="kCusto">—<small>BRL</small></div><div class="trend" id="kCustoSub">carregando…</div></div>
-        <div class="card"><h3><i class="ic ic-gauge"></i> Latência média</h3><div class="kpi" id="kLat">—<small>ms</small></div><div class="trend" id="kLatSub">carregando…</div></div>
-        <div class="card"><h3><i class="ic ic-bot"></i> Escalonamento</h3><div class="kpi" id="kEsc">—<small>%</small></div><div class="trend" id="kEscSub">carregando…</div></div>
-
-        <div class="card col2"><h3><i class="ic ic-pulse"></i> Últimas interações</h3><div id="ovFeed"><div class="spin"></div></div></div>
-        <div class="card col2"><h3><i class="ic ic-bot"></i> Agentes mais ativos hoje</h3><div id="ovAgents"><div class="spin"></div></div></div>
-      </div>
-    </section>
-
-    <!-- AGENTES -->
-    <section class="wrap" data-view="agents">
-      <div class="card">
-        <h3><i class="ic ic-bot"></i> Métricas por agente (hoje)</h3>
-        <div id="agentsTable"><div class="spin"></div></div>
-      </div>
-    </section>
-
-    <!-- TELEMETRIA -->
-    <section class="wrap" data-view="telemetry">
-      <div class="card">
-        <h3><i class="ic ic-pulse"></i> Telemetria do mês — chamadas recentes</h3>
-        <div id="teleFeed"><div class="spin"></div></div>
-      </div>
-    </section>
-
-    <!-- MEMÓRIA -->
-    <section class="wrap" data-view="memory">
-      <div class="card">
-        <h3><i class="ic ic-mem"></i> Memória episódica — desfechos recentes</h3>
-        <div id="memFeed"><div class="spin"></div></div>
-      </div>
-    </section>
-
-    <!-- A/B -->
-    <section class="wrap" data-view="ab">
-      <div class="card">
-        <h3><i class="ic ic-flask"></i> Teste A/B de prompt</h3>
-        <div class="note">Escolha um agente que tenha variantes A e B cadastradas. O comparativo só aponta vencedora com amostra suficiente. Aprovar uma variante grava ela como o prompt oficial do agente (usa o gateway iaCentral, se configurado em Config).</div>
-        <div class="field" style="max-width:420px">
-          <label>Agente</label>
-          <input id="abAgente" placeholder="id do agente (ex.: recepcao, vendas...)" list="agList">
-          <datalist id="agList"></datalist>
-        </div>
-        <div class="field" style="max-width:420px">
-          <label>Sistema</label>
-          <input id="abSistema" placeholder="sistema (ex.: ponte, crm, marketing)">
-        </div>
-        <button class="btn pri" onclick="compararAB()"><i class="ic ic-flask"></i> Comparar variantes</button>
-        <div id="abResult" style="margin-top:18px"></div>
-      </div>
-    </section>
-
-    <!-- CONFIANÇA -->
-    <section class="wrap" data-view="confidence">
-      <div class="card">
-        <h3><i class="ic ic-gauge"></i> Confiança por destino</h3>
-        <div class="note">Taxa de fechamento por destino, a partir da memória de sessões. Destinos com amostra pequena aparecem marcados como baixa confiança — dado insuficiente para conclusão.</div>
-        <div id="confTable"><div class="spin"></div></div>
-      </div>
-    </section>
-
-    <!-- CONFIG -->
-    <section class="wrap" data-view="config">
-      <div class="grid">
-        <div class="card col2">
-          <h3><i class="ic ic-gear"></i> Conexão com o cérebro</h3>
-          <div class="note">Preencha e clique em Salvar. Fica guardado só neste navegador. O endereço do banco já vem preenchido; o token só é necessário se as regras do seu Firebase exigirem autenticação para leitura.</div>
-          <div class="field">
-            <label>Endereço do banco (RTDB)</label>
-            <small>O banco do cérebro. Padrão já preenchido.</small>
-            <input id="cfgDb" placeholder="https://...firebaseio.com">
-          </div>
-          <div class="field">
-            <label>Token de leitura (opcional)</label>
-            <small>Só se o banco exigir. Deixe vazio se a leitura estiver liberada.</small>
-            <input id="cfgToken" placeholder="token do Firebase (opcional)">
-          </div>
-          <div class="field">
-            <label>Endereço do gateway iaCentral (opcional)</label>
-            <small>Usado só para aprovar variante A/B. Ex.: https://us-central1-desenrola-turia.cloudfunctions.net/iaCentral</small>
-            <input id="cfgGw" placeholder="https://...cloudfunctions.net/iaCentral">
-          </div>
-          <button class="btn pri" onclick="saveCfg()"><i class="ic ic-gear"></i> Salvar conexão</button>
-          <span id="cfgMsg" style="margin-left:12px;font-weight:800;font-size:13px"></span>
-        </div>
-        <div class="card col2">
-          <h3><i class="ic ic-map"></i> Marca (White-Label)</h3>
-          <div class="note">A marca é lida do cadastro central no banco (nó <b>marca</b>). Sem logo cadastrado, aparece o "D" laranja da Desenrola Digital — o padrão cru. Para trocar, edite o cadastro <b>marca</b> pelo Sistema (Registros) ou pelo card de Backup do GuiD.</div>
-          <div style="display:flex;align-items:center;gap:14px">
-            <div class="logo" id="brandLogo2" style="width:56px;height:56px;border-radius:14px;display:grid;place-items:center;background:var(--orange);box-shadow:var(--sh-orange);overflow:hidden"><span style="font-family:Anton;font-size:32px;color:#fff">D</span></div>
-            <div><b id="brandName2" style="font-family:Montserrat;font-size:17px">Desenrola Digital</b><br><small style="color:var(--ink-3)" id="brandState">padrão cru (sem logo cadastrado)</small></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
+<!-- ═══ LOGIN ═══ -->
+<div id="login">
+  <div class="cx">
+    <div class="dlogo"><span>D</span></div>
+    <div class="marca">TurIA</div>
+    <div class="sub">Cérebro · Desenrola Digital</div>
+    <label>E-mail do gestor</label>
+    <input type="email" id="lgEmail" autocomplete="username" placeholder="voce@exemplo.com">
+    <label>Senha</label>
+    <input type="password" id="lgSenha" autocomplete="current-password" placeholder="••••••••">
+    <button id="lgBtn">Entrar</button>
+    <div class="erro" id="lgErro"></div>
+    <div class="nota">Acesso restrito aos gestores da Desenrola Digital.<br>Cada acesso é autenticado no Firebase.</div>
   </div>
 </div>
 
+<!-- ═══ APP ═══ -->
+<div id="app">
+<div class="scrim" id="scrim"></div>
+<div class="shell">
+
+  <aside class="side" id="side">
+    <div class="brand">
+      <div class="dbox"><span>D</span></div>
+      <div><b>TurIA</b><small>Cérebro</small></div>
+    </div>
+    <nav>
+      <button data-p="dash" class="on">Dashboard</button>
+      <button data-p="chat">Chat</button>
+      <button data-p="agentes">Agentes</button>
+      <button data-p="kosmos">KosMos</button>
+      <button data-p="memoria">Memória</button>
+      <button data-p="modelos">Modelos</button>
+      <button data-p="cerebro">Cérebro</button>
+    </nav>
+    <div class="foot">
+      <button id="temaBtn" class="tema-btn" title="Alternar tema claro/escuro"><span class="ic ic-tema"></span> <span id="temaLbl">Tema claro</span></button>
+      <div class="who" id="euEmail"></div>
+      <button id="btnSair">Sair</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="burger" id="burger"></div>
+      <b>TurIA</b>
+    </div>
+    <main>
+<section class="pag" id="p-chat">
+  <div class="tit">Chat</div>
+  <p>Converse com a TurIA pela matriz principal: alimente conhecimento, entenda o raciocínio dela e organize tarefas. Para testar um agente específico, é só pedir: <i>"TurIA, foque no agente recepcionista"</i>.</p>
+
+  <div class="foco">
+    <span class="pill kos" id="focoAtual">Matriz principal</span>
+    <button class="btn mini f fix" id="btnVoltarMatriz">Voltar à matriz</button>
+    <button class="btn mini f fix" id="btnLimpar">Limpar conversa</button>
+  </div>
+
+  <div id="chatArea"></div>
+
+  <div id="kosConf">
+    <b><i class="ic ic-ai"></i> Gravar no KOS (memória permanente)?</b>
+    <p class="dica" style="margin:6px 0">Isto entra na memória de longo prazo, com confiança máxima. Confira o texto exato:</p>
+    <textarea id="kosTexto" style="min-height:70px"></textarea>
+    <div class="linha" style="margin-top:8px">
+      <input type="text" id="kosTitulo" placeholder="Título curto da memória">
+      <button class="btn g fix" id="kosOk">Confirmar gravação</button>
+      <button class="btn f mini fix" id="kosNao">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="linha" style="margin-top:12px">
+    <textarea id="chatIn" style="min-height:62px;font-family:Nunito,sans-serif;font-size:14px" placeholder="Fale com a TurIA... (Enter envia, Shift+Enter quebra linha)"></textarea>
+    <button class="btn fix" id="chatEnviar" style="align-self:stretch;padding:0 22px">Enviar</button>
+  </div>
+  <div class="aviso">Para gravar no KOS, escreva de forma explícita: <b>"TurIA, grave no KOS: ..."</b> — aparecerá uma confirmação antes de qualquer escrita.</div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="linha" style="justify-content:space-between">
+      <h3 style="margin:0"><i class="ic ic-scroll"></i> Histórico das conversas</h3>
+      <button class="btn f mini fix" id="histRefresh">Atualizar</button>
+    </div>
+    <p class="dica">Só as conversas <b>deste Console</b>. Tudo já passou pelo filtro de privacidade. Os registros dos outros sistemas ficam ocultos — servem só para a TurIA analisar e propor memórias.</p>
+    <div id="histLista"></div>
+  </div>
+</section>
+
+<!-- ── AGENTES ── -->
+<section class="pag" id="p-agentes">
+  <div class="tit">Agentes</div>
+  <p>Os especialistas que a TurIA aciona. Todos operam no <b>básico</b>; o reforço é pedido pela própria IA ou pelo cliente.</p>
+
+  <div class="card" style="border-left:3px solid var(--azul)">
+    <div class="linha" style="justify-content:space-between">
+      <h3 style="margin:0"><i class="ic ic-layers"></i> Matriz Global — o prompt-mãe</h3>
+      <span class="pill" id="mgInfo"></span>
+    </div>
+    <p class="dica">A identidade e as regras que valem para <b>todos</b> os agentes — entra como primeira camada em <b>toda</b> resposta, inclusive no Chat. Mudar aqui muda a TurIA inteira de uma vez. Use <span class="pill mono">{{EMPRESA}}</span> onde o nome da empresa deve aparecer.</p>
+    <textarea id="mgTexto" style="min-height:230px"></textarea>
+    <div class="linha" style="margin-top:10px;justify-content:flex-end">
+      <button class="btn f mini fix" id="mgRecarregar">Descartar alterações</button>
+      <button class="btn fix" id="mgSalvar">Salvar Matriz Global</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="linha">
+      <select id="agSel"></select>
+      <button class="btn f mini fix" id="agNovo">+ Novo agente</button>
+    </div>
+    <div class="linha" style="margin-top:10px">
+      <div><label>Nome</label><input type="text" id="agNome"></div>
+      <div><label>Papel (o roteador usa isto para decidir)</label><input type="text" id="agPapel"></div>
+    </div>
+    <div class="linha">
+      <div><label>Modelo específico (vazio = usa o roteamento)</label><input type="text" id="agModelo" class="mono" placeholder="ex.: deepinfra:google/gemma-3-12b-it"></div>
+      <div style="flex:0 0 120px"><label>Temperatura</label><input type="number" id="agTemp" step="0.1" min="0" max="1.5"></div>
+    </div>
+    <label>Prompt do agente</label>
+    <textarea id="agPrompt" style="min-height:190px"></textarea>
+    <div class="linha" style="margin-top:10px;justify-content:flex-end">
+      <span class="pill" id="agInfo"></span>
+      <button class="btn p mini fix" id="agExcluir">Excluir</button>
+      <button class="btn fix" id="agSalvar">Salvar agente</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── KOSMOS ── -->
+<section class="pag" id="p-kosmos">
+  <div class="tit">KosMos</div>
+  <p>A memória. <b>KOS</b> = longo prazo, curado, permanente. <b>MOS</b> = curto prazo, com validade, ainda não curado. Aqui você faz a curadoria do MOS — o que aprovar sobe para o KOS.</p>
+
+  <div class="kpi">
+    <div class="b"><div class="n" id="kKos">—</div><div class="l">KOS (longo prazo)</div></div>
+    <div class="b"><div class="n" id="kKex">—</div><div class="l">Curados aqui</div></div>
+    <div class="b"><div class="n" id="kMos">—</div><div class="l">MOS vivos</div></div>
+    <div class="b"><div class="n" id="kPend">—</div><div class="l">Aguardando curadoria</div></div>
+    <div class="b"><div class="n" id="kMad">—</div><div class="l"><i class="ic ic-star"></i> Maduras</div></div>
+  </div>
+
+  <div class="card">
+    <div class="linha" style="justify-content:space-between">
+      <h3 style="margin:0">Curadoria do MOS</h3>
+      <div class="linha fix">
+        <select id="mosFiltro" style="flex:0 0 170px">
+          <option value="maduros">Maduras (confirmadas)</option>
+          <option value="pendentes">Aguardando curadoria</option>
+          <option value="vivos">Todas as vivas</option>
+          <option value="expirados">Expiradas/obsoletas</option>
+        </select>
+        <button class="btn f mini fix" id="mosRefresh">Atualizar</button>
+      </div>
+    </div>
+    <p class="dica">Aprovar envia a memória para o KOS (permanente). Você pode definir uma data de validade — depois dela a memória fica obsoleta sozinha.</p>
+    <div id="mosLista"></div>
+  </div>
+
+  <div class="card">
+    <h3>Memórias curadas aqui (KOS incremental)</h3>
+    <p class="dica">Aprovadas na curadoria ou gravadas pelo chat. A IA já as usa com confiança de KOS.</p>
+    <div id="kexLista"></div>
+  </div>
+</section>
+
+<!-- ── TELEMETRIA (leitor da memória de telemetria) ── -->
+<!-- ── MEMÓRIA EPISÓDICA (leitor das sessões) ── -->
+<section class="pag" id="p-memoria">
+  <div class="tit">Memória episódica</div>
+  <p>Os desfechos das sessões que os sistemas alimentaram — venda, perda, valor e dias até fechar. Só os <b>metadados</b> do episódio; o conteúdo das conversas continua oculto, como no resto do console. Lê de <span class="pill mono">sessoes</span>.</p>
+  <div class="card">
+    <div class="linha" style="justify-content:space-between"><h3 style="margin:0">Sessões recentes</h3><button class="btn f mini fix" id="memRefresh">Atualizar</button></div>
+    <div id="memFeed" style="margin-top:10px"><div class="spin"></div></div>
+  </div>
+  <div class="card">
+    <div class="linha" style="justify-content:space-between"><h3 style="margin:0"><i class="ic ic-target"></i> Confiança por destino</h3><button class="btn f mini fix" id="confRefresh">Atualizar</button></div>
+    <p class="dica">Taxa de fechamento por destino (das sessões). Destinos com poucos episódios aparecem como baixa confiança.</p>
+    <div id="confTable" style="margin-top:10px"><div class="spin"></div></div>
+  </div>
+</section>
+
+<!-- ── MODELOS ── -->
+<section class="pag" id="p-modelos">
+  <div class="tit">Modelos</div>
+  <p>Quem responde o quê. O <b>modelo principal</b> recebe a chamada sem agente definido e escolhe o especialista certo.</p>
+
+  <div class="card" style="border-left:3px solid var(--sol)">
+    <h3>Modelo principal (roteador)</h3>
+    <p class="dica">Lê a pergunta e escolhe o agente. Só entra em ação quando o sistema que chamou não definiu o agente — aí vale o custo.</p>
+    <div class="linha">
+      <input type="text" id="rotModelo" class="mono" placeholder="apelido:modelo">
+      <div style="flex:0 0 150px"><select id="rotAtivo"><option value="1">Ativo</option><option value="0">Desligado</option></select></div>
+      <div style="flex:0 0 160px"><input type="text" id="rotPadrao" placeholder="agente padrão"></div>
+      <button class="btn fix" id="rotSalvar">Salvar</button>
+    </div>
+    <div class="linha" style="margin-top:12px">
+      <div style="flex:0 0 260px">
+        <label>A IA pode pedir reforço sozinha?</label>
+        <select id="escalOn"><option value="1">Sim — ela escala quando precisa</option><option value="0">Não — só o cliente pede</option></select>
+      </div>
+      <div class="aviso" style="flex:1;margin:0">Quando ligada, a IA que se sentir incapaz de responder bem no básico pede o modelo forte. <b>Sem saldo, ela ainda entrega a melhor resposta do básico</b> e oferece a recarga — o básico nunca para.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Modelos ativos (roteamento com failover)</h3>
+    <p class="dica">Um por linha, no formato <span class="pill mono">apelido:modelo</span>. Se o primeiro falhar, o cérebro pula para o próximo automaticamente.</p>
+    <div class="linha" style="align-items:flex-start">
+      <div><label>Base — volume, barato (nunca gasta carteira)</label><textarea id="rotBase" style="min-height:110px"></textarea></div>
+      <div><label>Reforço — pesado (gasta carteira/senha)</label><textarea id="rotReforco" style="min-height:110px"></textarea></div>
+    </div>
+    <div class="linha" style="margin-top:10px;justify-content:flex-end"><button class="btn fix" id="rotaSalvar">Salvar roteamento</button></div>
+  </div>
+
+  <div class="card">
+    <h3>Catálogo de modelos</h3>
+    <p class="dica">Preços US$ por milhão de tokens — usados no carimbo de custo e no débito da carteira.</p>
+    <div id="catLista"></div>
+    <div class="linha" style="margin-top:10px">
+      <input type="text" id="catId" class="mono" placeholder="apelido:modelo">
+      <div style="flex:0 0 110px"><input type="number" id="catIn" step="0.01" placeholder="US$ entrada"></div>
+      <div style="flex:0 0 110px"><input type="number" id="catOut" step="0.01" placeholder="US$ saída"></div>
+      <button class="btn f fix" id="catAdd">+ Adicionar</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Modelo por agente</h3>
+    <p class="dica">Fixe um modelo para um agente específico. Vazio = segue o roteamento base.</p>
+    <div id="mpaLista"></div>
+  </div>
+</section>
+
+<!-- ── CÉREBRO ── -->
+<section class="pag" id="p-cerebro">
+  <div class="tit">Cérebro</div>
+  <p>A infraestrutura: conexão, chaves de API dos sistemas, senha do reforço, custo e backup.</p>
+
+  <div class="card">
+    <h3>Conexão</h3>
+    <div class="linha" style="margin-top:8px"><span class="pill ok" id="conStatus">—</span><span class="pill mono" id="conProj">—</span></div>
+    <label>Endereço da API (função iaCentral)</label>
+    <div class="linha"><input type="url" id="cbUrl" class="mono" placeholder="https://iacentral-xxxx-uc.a.run.app"><button class="btn mini fix" id="cbUrlSalvar">Salvar</button><button class="btn f mini fix" id="cbTestar">Testar</button></div>
+    <label>Token do sistema "console" (usado pelo Chat)</label>
+    <div class="linha">
+      <input type="password" id="cbTok" class="mono" placeholder="tia_console_...">
+      <button class="btn mini fix" id="cbTokSalvar">Salvar</button>
+      <button class="btn g mini fix" id="cbTokGerar"><i class="ic ic-refresh"></i> Gerar e usar</button>
+      <button class="btn f mini fix" id="cbTokTestar">Testar</button>
+    </div>
+    <div class="aviso"><b>Deu "token_invalido"?</b> Clique em <b>Gerar e usar</b>: ele cria uma chave nova, grava no cérebro e já liga o Chat — sem copiar nada. Use isso sempre que rodar o seed com <span class="pill mono">--tokens</span>.</div>
+  </div>
+
+  <div class="card" style="border-left:3px solid var(--sol)">
+    <h3><i class="ic ic-plug"></i> Sistemas & Chaves de API</h3>
+    <p class="dica">Cada sistema/empresa que usa a TurIA tem a própria chave. Ela aparece <b>uma única vez</b>.</p>
+    <div id="sisLista"></div>
+    <div class="aviso" style="margin-top:12px">
+      <b>Novo sistema/cliente:</b>
+      <div class="linha" style="margin-top:7px">
+        <input type="text" id="sisId" class="mono" style="flex:0 0 160px" placeholder="id (ex.: agencia-xyz)">
+        <input type="text" id="sisNome" placeholder="nome">
+        <div style="flex:0 0 110px"><input type="number" id="sisTeto" value="1000" placeholder="chamadas/dia"></div>
+        <div style="flex:0 0 100px"><input type="number" id="sisUsd" value="5" step="0.5" placeholder="US$/dia"></div>
+        <button class="btn fix" id="sisCriar">Criar + chave</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><i class="ic ic-lock"></i> Senha do Reforço</h3>
+    <p class="dica">Modo Desenrola: usa a IA forte sem consumir carteira de ninguém.</p>
+    <div class="linha"><button class="btn s mini fix" id="senhaDef">Definir / trocar senha</button><span class="pill" id="senhaEstado"></span></div>
+    <label>Link de compra de créditos</label>
+    <div class="linha"><input type="url" id="linkCompra" class="mono" placeholder="(vazio por enquanto)"><button class="btn mini fix" id="linkSalvar">Salvar</button></div>
+  </div>
+
+  <div class="card">
+    <h3>Custo do mês</h3>
+    <div class="linha" style="margin-top:8px">
+      <div style="flex:0 0 150px"><label>Câmbio US$ → R$</label><input type="number" id="cambio" step="0.1"></div>
+      <div><label>&nbsp;</label><div class="mono" id="custoMes" style="padding:9px 0">—</div></div>
+      <button class="btn f mini fix" id="cambioSalvar" style="align-self:flex-end">Salvar câmbio</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Backup</h3>
+    <p class="dica">Baixa uma cópia de tudo que está no cérebro (agentes, config, memórias). Chaves nunca saem.</p>
+    <div class="linha"><button class="btn f fix" id="bkExportar">Exportar backup</button></div>
+  </div>
+</section>
+
+<!-- ── DASHBOARD ── -->
+<section class="pag on" id="p-dash">
+  <div class="tit">Dashboard</div>
+  <p>O pulso do cérebro no mês corrente.</p>
+
+  <div class="card">
+    <div class="pnl-bar">
+      <h3><i class="ic ic-chart"></i> Painel</h3>
+      <span class="pill">o dashboard é todo seu — monte como quiser</span>
+      <span class="sp"></span>
+      <button class="btn f mini fix" id="pnlAdd">+ Indicador</button>
+      <button class="btn f mini fix" id="pnlEdit">Editar painel</button>
+    </div>
+    <div class="pnl-grid" id="pnlGrid"><div class="spin"></div></div>
+    <div class="dica" style="margin:10px 0 0">No modo <b>Editar painel</b> você arrasta para reordenar, muda o tamanho (P/M/G/Largo) e remove. As mudanças ficam salvas no cérebro.</div>
+  </div>
+</section>
+
+    </main>
+  </div>
+</div>
+</div>
+<div class="pnl-modal" id="pnlModal">
+  <div class="pnl-box">
+    <div class="linha" style="justify-content:space-between;align-items:center"><h3 style="margin:0">Adicionar indicador</h3><button class="btn f mini fix" id="pnlClose">Fechar</button></div>
+    <div class="pnl-tabs">
+      <button data-tab="cat" class="on">Da biblioteca</button>
+      <button data-tab="custom">Personalizado</button>
+      <button data-tab="ia">Descrever para a TurIA</button>
+    </div>
+    <div id="pnlTabCat"></div>
+    <div id="pnlTabCustom" style="display:none"></div>
+    <div id="pnlTabIa" style="display:none"></div>
+  </div>
+</div>
+<div id="toasts"></div>
 <script>
-/* ============================================================================
-   DADOS — lê o banco do cérebro por REST e fala com o gateway iaCentral.
-   Nada é inventado: se um dado não existe, mostra vazio com orientação.
-   ========================================================================== */
-const $ = s => document.querySelector(s);
-const $$ = s => Array.from(document.querySelectorAll(s));
 
-// persistência leve (não quebra se o navegador bloquear)
-try{ const s=JSON.parse(localStorage.getItem('turia_cfg')||'null'); if(s) Object.assign(window.CFG,s); }catch(e){}
+'use strict';
+const VERSAO = '4.5.0';
 
-function hojeStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-function mesStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
-function brl(n){ return (n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function intBR(n){ return (n||0).toLocaleString('pt-BR'); }
-function esc(s){ return String(s==null?'':s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+// firebaseConfig EMBUTIDO — a apiKey web é pública por design. Nunca mais colar nada.
+const FB = {
+  apiKey: "AIzaSyAEGuCmElADydExgnmX2povldg1cEThwis",
+  authDomain: "desenrola-turia.firebaseapp.com",
+  databaseURL: "https://desenrola-turia-default-rtdb.firebaseio.com",
+  projectId: "desenrola-turia",
+  storageBucket: "desenrola-turia.firebasestorage.app",
+  messagingSenderId: "447386289514",
+  appId: "1:447386289514:web:2324888c33b18777631113"
+};
 
-async function dbGet(path){
-  const base=(window.CFG.dbUrl||'').replace(/\/$/,'');
-  if(!base) throw new Error('sem-config');
-  let url=base+'/'+path+'.json';
-  if(window.CFG.token) url+='?auth='+encodeURIComponent(window.CFG.token);
-  const r=await fetch(url);
-  if(!r.ok) throw new Error('http-'+r.status);
-  return await r.json();
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function toast(m, tipo) { const d = document.createElement('div'); d.className = 'toast' + (tipo === 'er' ? ' er' : ''); d.textContent = m; $('toasts').appendChild(d); setTimeout(() => d.remove(), 3600); }
+async function sha256(t) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
+const fmtBRL = (n) => 'R$ ' + (Number(n) || 0).toFixed(2);
+const mesAtual = () => { const d = new Date(); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0'); };
+const dataISO = (ts) => ts ? new Date(ts).toISOString().slice(0, 10) : '';
+
+firebase.initializeApp(FB);
+const auth = firebase.auth();
+const db = firebase.database();
+
+// ── Camada de dados: TUDO vive no Firebase (nenhum dado no navegador) ──
+const D = {
+  ler: async (p) => (await db.ref(p).once('value')).val(),
+  gravar: (p, v) => db.ref(p).set(v),
+  atualizar: (p, v) => db.ref(p).update(v),
+  remover: (p) => db.ref(p).remove(),
+  transacao: (p, fn) => db.ref(p).transaction(fn)
+};
+const S = { cfg: {}, agentes: {}, email: '' };
+
+// ══════════ LOGIN ══════════
+$('lgBtn').onclick = entrar;
+$('lgSenha').onkeydown = (e) => { if (e.key === 'Enter') entrar(); };
+async function entrar() {
+  const e = $('lgEmail').value.trim(), s = $('lgSenha').value;
+  if (!e || !s) return mostraErro('Informe e-mail e senha.');
+  $('lgBtn').disabled = true; $('lgBtn').textContent = 'Entrando...';
+  try { await auth.signInWithEmailAndPassword(e, s); }
+  catch (err) {
+    const m = /user-not-found|wrong-password|invalid-credential/.test(err.code || '') ? 'E-mail ou senha incorretos.'
+      : /too-many-requests/.test(err.code || '') ? 'Muitas tentativas. Aguarde um instante.'
+      : (err.message || 'Falha ao entrar.');
+    mostraErro(m);
+  } finally { $('lgBtn').disabled = false; $('lgBtn').textContent = 'Entrar'; }
 }
-async function gwPost(body){
-  const gw=(window.CFG.gatewayUrl||'').replace(/\/$/,'');
-  if(!gw) throw new Error('sem-gateway');
-  const r=await fetch(gw,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok) throw new Error('http-'+r.status);
-  return await r.json();
-}
-function emptyBox(txt){ return `<div class="empty"><i class="ic ic-mem"></i><div>${txt}</div></div>`; }
-function needCfg(){ return `<div class="empty"><i class="ic ic-gear"></i><div>Conecte o cérebro em <b>Config</b> para ver os dados.</div></div>`; }
+function mostraErro(m) { const d = $('lgErro'); d.textContent = m; d.style.display = 'block'; }
+$('btnSair').onclick = () => auth.signOut();
 
-/* ---- soma numérica defensiva: pega os campos que reconhece ---- */
-function acumular(dst, node){
-  if(!node||typeof node!=='object') return;
-  for(const k in node){
-    const v=node[k];
-    if(typeof v==='number'){ dst[k]=(dst[k]||0)+v; }
+// A sessão do Firebase persiste sozinha → recarregar a página NÃO perde nada.
+auth.onAuthStateChanged(async (u) => {
+  if (u) {
+    S.email = u.email;
+    $('euEmail').textContent = S.email;
+    $('login').style.display = 'none';
+    $('app').style.display = 'block';
+    await carregarTudo();
+  } else {
+    $('app').style.display = 'none';
+    $('login').style.display = 'flex';
+    $('lgErro').style.display = 'none';
+    $('lgSenha').value = '';
+  }
+});
+
+// ══════════ NAVEGAÇÃO ══════════
+document.querySelectorAll('nav button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('nav button').forEach(x => x.classList.remove('on'));
+    document.querySelectorAll('.pag').forEach(x => x.classList.remove('on'));
+    b.classList.add('on'); $('p-' + b.dataset.p).classList.add('on');
+    if (b.dataset.p === 'chat') renderHistorico();
+    if (b.dataset.p === 'agentes') renderMatriz();
+    if (b.dataset.p === 'kosmos') renderKosMos();
+    if (b.dataset.p === 'dash') { /* dashboard renderizado pelo PAINEL */ }
+    if (b.dataset.p === 'cerebro') renderCerebro();
+    if (b.dataset.p === 'modelos') renderModelos();
+  };
+});
+
+async function carregarTudo() {
+  try {
+    S.cfg = (await D.ler('ia/config')) || {};
+    S.agentes = (await D.ler('ia/agentes')) || {};
+    $('conStatus').textContent = 'conectado'; $('conProj').textContent = FB.projectId;
+    renderAgentes(); renderMatriz(); renderCerebro(); renderModelos();
+    if(window.PAINEL){ PAINEL.init(); }
+    saudacao();
+  } catch (e) { toast('Erro ao carregar o cérebro: ' + (e.message || e), 'er'); }
+}
+
+// ══════════ CHAT ══════════
+let conversa = [], agenteFoco = null;
+let sessaoId = 'ses_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+function saudacao() {
+  if (!conversa.length) {
+    $('chatArea').innerHTML = '<div class="vazio">Fale com a TurIA. Ela responde pela matriz principal.<br>Para testar um especialista: <i>"foque no agente recepcionista"</i>.</div>';
   }
 }
+function addMsg(txt, quem, carimbo) {
+  if ($('chatArea').querySelector('.vazio')) $('chatArea').innerHTML = '';
+  const d = document.createElement('div');
+  d.className = 'msg ' + quem; d.textContent = txt;
+  $('chatArea').appendChild(d);
+  if (carimbo) { const c = document.createElement('div'); c.className = 'carimbo'; c.textContent = carimbo; $('chatArea').appendChild(c); }
+  $('chatArea').scrollTop = $('chatArea').scrollHeight;
+}
 
-/* ---- VISÃO GERAL + AGENTES: lê ia/metricas/{sistema}/{hoje}/{agente} ---- */
-let _cacheMetricas=null;
-async function loadMetricas(){
-  const raiz=await dbGet('ia/metricas');           // { sistema: { dia: { agente: {...} } } }
-  _cacheMetricas=raiz||{};
-  const hoje=hojeStr();
-  const total={chamadas:0,custoBRL:0,custoUSD:0,latenciaMs:0,escalados:0};
-  const porAgente={};
-  for(const sis in _cacheMetricas){
-    const dias=_cacheMetricas[sis]||{};
-    const dia=dias[hoje]; if(!dia) continue;
-    for(const ag in dia){
-      const m=dia[ag]||{};
-      const chamadas=m.chamadas||m.total||0;
-      total.chamadas+=chamadas;
-      total.custoBRL+=m.custoBRL||0;
-      total.custoUSD+=m.custoUSD||0;
-      total.latenciaMs+=m.latenciaMs||m.latenciaMsSoma||0;
-      total.escalados+=m.escalados||m.escalado||0;
-      const key=sis+' · '+ag;
-      porAgente[key]=porAgente[key]||{sistema:sis,agente:ag,chamadas:0,custoBRL:0,latenciaMs:0,escalados:0,recompensa:0};
-      porAgente[key].chamadas+=chamadas;
-      porAgente[key].custoBRL+=m.custoBRL||0;
-      porAgente[key].latenciaMs+=m.latenciaMs||m.latenciaMsSoma||0;
-      porAgente[key].escalados+=m.escalados||m.escalado||0;
-      porAgente[key].recompensa+=m.recompensa||0;
-    }
+// detecta "foque no agente X" / "volte para a matriz" — sem gastar chamada de IA
+function detectarFoco(txt) {
+  const t = txt.toLowerCase();
+  if (/(volt|retorn)\w*\s+(pra|para)\s+(a\s+)?(matriz|turia)/.test(t) || /sai\w*\s+do\s+agente/.test(t)) return { voltar: true };
+  const m = t.match(/(?:foc\w+|us\w+|mud\w+|test\w+|chame?|ativ\w+)[^a-z0-9]+(?:n?[oa]s?\s+)?agente\s+([a-z0-9\u00e0-\u00fc\s-]{2,40})/);
+  if (!m) return null;
+  const alvo = m[1].trim().replace(/\s+(agora|por favor|pf)\b.*$/, '').trim();
+  let achou = null, melhor = 0;
+  Object.keys(S.agentes).forEach(id => {
+    const a = S.agentes[id] || {};
+    const cands = [id, String(a.nome || ''), String(a.papel || '')].map(x => x.toLowerCase());
+    cands.forEach(c => {
+      if (!c) return;
+      let p = 0;
+      if (c === alvo) p = 100;
+      else if (c.startsWith(alvo) || alvo.startsWith(c)) p = 70;
+      else if (c.includes(alvo) || alvo.includes(c)) p = 40;
+      if (p > melhor) { melhor = p; achou = id; }
+    });
+  });
+  return melhor >= 40 ? { agente: achou } : null;
+}
+// detecta pedido explícito de gravação no KOS
+function detectarKos(txt) {
+  const m = txt.match(/grav\w*\s+(?:isso\s+)?(?:n[oa]\s+)?kos\s*[:\-]\s*([\s\S]{5,})/i);
+  return m ? m[1].trim() : null;
+}
+function setFoco(id) {
+  agenteFoco = id;
+  const a = id ? S.agentes[id] : null;
+  $('focoAtual').textContent = a ? ('Agente: ' + (a.nome || id)) : 'Matriz principal';
+  $('focoAtual').className = 'pill ' + (a ? 'mos' : 'kos');
+}
+$('btnVoltarMatriz').onclick = () => { setFoco(null); addMsg('Foco de volta na matriz principal.', 'sis'); };
+$('btnLimpar').onclick = () => { conversa = []; sessaoId = 'ses_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); $('chatArea').innerHTML = ''; saudacao(); };
+$('chatIn').onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarChat(); } };
+$('chatEnviar').onclick = enviarChat;
+
+async function enviarChat() {
+  const txt = $('chatIn').value.trim();
+  if (!txt) return;
+  $('chatIn').value = '';
+  addMsg(txt, 'eu');
+
+  // 1) pedido de gravação no KOS → confirmação obrigatória
+  const kosPed = detectarKos(txt);
+  if (kosPed) {
+    $('kosTexto').value = kosPed;
+    $('kosTitulo').value = kosPed.slice(0, 60);
+    $('kosConf').style.display = 'block';
+    addMsg('Entendi que você quer gravar no KOS. Confirme o texto exato abaixo — nada é gravado sem sua confirmação.', 'sis');
+    return;
   }
-  // KPIs
-  $('#kChamadas').textContent=intBR(total.chamadas);
-  $('#kChamadasSub').textContent=hoje;
-  $('#kCusto').innerHTML=brl(total.custoBRL)+'<small>BRL</small>';
-  $('#kCustoSub').textContent='US$ '+brl(total.custoUSD);
-  const latMed=total.chamadas?Math.round(total.latenciaMs/total.chamadas):0;
-  $('#kLat').innerHTML=intBR(latMed)+'<small>ms</small>';
-  $('#kLatSub').textContent=latMed?'média por chamada':'sem dados hoje';
-  const escPct=total.chamadas?Math.round(total.escalados/total.chamadas*100):0;
-  $('#kEsc').innerHTML=escPct+'<small>%</small>';
-  $('#kEscSub').textContent=intBR(total.escalados)+' de '+intBR(total.chamadas);
+  // 2) troca de foco de agente
+  const foco = detectarFoco(txt);
+  if (foco) {
+    if (foco.voltar) { setFoco(null); addMsg('Ok — voltei para a matriz principal.', 'sis'); return; }
+    setFoco(foco.agente);
+    const a = S.agentes[foco.agente];
+    addMsg('Foco alterado para o agente "' + (a.nome || foco.agente) + '". As próximas respostas vêm dele.', 'sis');
+    return;
+  }
 
-  // lista de agentes (ordenada por chamadas)
-  const arr=Object.values(porAgente).sort((a,b)=>b.chamadas-a.chamadas);
-  renderAgents(arr);
-  return arr;
-}
-function renderAgents(arr){
-  const ov=$('#ovAgents'), full=$('#agentsTable');
-  if(!arr.length){ ov.innerHTML=emptyBox('Sem métricas para hoje ainda.'); full.innerHTML=emptyBox('Sem métricas para hoje ainda.'); return; }
-  // resumo (top 5) na visão geral
-  ov.innerHTML='<div class="feed">'+arr.slice(0,5).map(a=>`
-    <div class="row"><span class="dot dot-${a.escalados/(a.chamadas||1)>0.3?'amarelo':'verde'}"></span>
-      <span class="who" style="flex:1">${esc(a.agente)}<span class="meta"> · ${esc(a.sistema)}</span></span>
-      <span class="tag">${intBR(a.chamadas)} ch.</span></div>`).join('')+'</div>';
-  // tabela completa
-  full.innerHTML=`<table><thead><tr><th>Agente</th><th>Sistema</th><th class="num">Chamadas</th><th class="num">Custo BRL</th><th class="num">Latência méd.</th><th class="num">Escal.</th><th class="num">Recompensa</th></tr></thead><tbody>`+
-    arr.map(a=>{const lat=a.chamadas?Math.round(a.latenciaMs/a.chamadas):0;const esc=a.chamadas?Math.round(a.escalados/a.chamadas*100):0;
-      return `<tr><td><b>${esc0(a.agente)}</b></td><td>${esc0(a.sistema)}</td><td class="num">${intBR(a.chamadas)}</td><td class="num">${brl(a.custoBRL)}</td><td class="num">${intBR(lat)} ms</td><td class="num"><span class="pill ${esc>30?'warn':'ok'}">${esc}%</span></td><td class="num">${intBR(Math.round(a.recompensa))}</td></tr>`;
-    }).join('')+`</tbody></table>`;
-}
-function esc0(s){return esc(s);}
+  conversa.push({ papel: 'user', texto: txt });
+  const url = S.cfg.funcUrl || '', tok = S.cfg.consoleToken || '';
+  if (!url || !tok) { addMsg('Falta configurar a conexão: vá em Cérebro → Conexão e informe o endereço da API e o token.', 'sis'); return; }
 
-/* ---- TELEMETRIA: ia/telemetria/{mes}/{traceId} ---- */
-async function loadTelemetria(){
-  const box=$('#teleFeed'), ov=$('#ovFeed');
-  let node; try{ node=await dbGet('ia/telemetria/'+mesStr()); }catch(e){ if(e.message==='sem-config'){box.innerHTML=needCfg();ov.innerHTML=needCfg();return;} throw e; }
-  if(!node){ box.innerHTML=emptyBox('Sem telemetria neste mês ainda.'); ov.innerHTML=emptyBox('Sem interações registradas hoje.'); return; }
-  const arr=Object.entries(node).map(([id,v])=>({id,...(v||{})}));
-  arr.reverse(); // mais recentes por último na escrita → invertendo
-  const render=(list)=> '<div class="feed">'+list.map(t=>`
-    <div class="row">
-      <span class="dot dot-${t.escalado?'amarelo':(t.roteado?'azul':'verde')}"></span>
-      <span style="flex:1;min-width:0">
-        <span class="who">${esc(t.agente||'—')}</span> <span class="meta">· ${esc(t.sistema||'')} · ${esc(t.modelo||t.tier||'')}</span>
-      </span>
-      <span class="tag">${(t.latenciaMs!=null)?intBR(t.latenciaMs)+' ms':''}</span>
-      <span class="tag">R$ ${brl(t.custoBRL)}</span>
-      ${t.kosDocs?`<span class="tag">${intBR(t.kosDocs)} KOS</span>`:''}
-    </div>`).join('')+'</div>';
-  box.innerHTML=render(arr.slice(0,60));
-  ov.innerHTML=render(arr.slice(0,6));
-}
-
-/* ---- MEMÓRIA: sessoes/{dia}/{sessaoId} ---- */
-async function loadMemoria(){
-  const box=$('#memFeed');
-  let raiz; try{ raiz=await dbGet('sessoes'); }catch(e){ if(e.message==='sem-config'){box.innerHTML=needCfg();return;} throw e; }
-  if(!raiz){ box.innerHTML=emptyBox('Sem sessões registradas ainda.'); return; }
-  const dias=Object.keys(raiz).sort().reverse().slice(0,7); // últimos dias
-  const arr=[];
-  for(const d of dias){ const s=raiz[d]||{}; for(const id in s){ arr.push({dia:d,id,...(s[id]||{})}); } }
-  const comDesfecho=arr.filter(s=>s.desfecho);
-  const lista=(comDesfecho.length?comDesfecho:arr).slice(0,60);
-  if(!lista.length){ box.innerHTML=emptyBox('Sem sessões com desfecho ainda.'); return; }
-  box.innerHTML='<div class="feed">'+lista.map(s=>{
-    const venda=(s.desfecho==='venda'||s.desfecho==='ganho');
-    const perda=(s.desfecho==='perdido'||s.desfecho==='perda');
-    const dc=venda?'verde':(perda?'vermelho':'azul');
-    const dest=(s.demografia&&(s.demografia.destino))||s.destino||'';
-    return `<div class="row"><span class="dot dot-${dc}"></span>
-      <span style="flex:1;min-width:0"><span class="who">${esc(s.desfecho||'em aberto')}</span>
-        ${dest?`<span class="meta">· ${esc(dest)}</span>`:''}
-        ${Array.isArray(s.agentes)&&s.agentes.length?`<span class="meta">· ${esc(s.agentes.join(', '))}</span>`:''}</span>
-      ${s.valor?`<span class="tag">R$ ${brl(s.valor)}</span>`:''}
-      ${s.diasAteFechar!=null?`<span class="tag">${intBR(s.diasAteFechar)}d</span>`:''}
-      <span class="meta">${esc(s.dia)}</span></div>`;
-  }).join('')+'</div>';
-  return arr;
-}
-
-/* ---- CONFIANÇA por destino (derivada das sessões) ---- */
-async function loadConfianca(){
-  const box=$('#confTable');
-  let raiz; try{ raiz=await dbGet('sessoes'); }catch(e){ if(e.message==='sem-config'){box.innerHTML=needCfg();return;} throw e; }
-  if(!raiz){ box.innerHTML=emptyBox('Sem sessões para calcular confiança.'); return; }
-  const dest={};
-  for(const d in raiz){ const s=raiz[d]||{}; for(const id in s){ const x=s[id]||{}; const dt=(x.demografia&&x.demografia.destino)||x.destino; if(!dt) continue; dest[dt]=dest[dt]||{n:0,v:0}; dest[dt].n++; if(x.desfecho==='venda'||x.desfecho==='ganho') dest[dt].v++; } }
-  const arr=Object.entries(dest).map(([d,o])=>({destino:d,n:o.n,taxa:o.n?o.v/o.n:0})).sort((a,b)=>b.n-a.n);
-  if(!arr.length){ box.innerHTML=emptyBox('Nenhuma sessão com destino informado.'); return; }
-  box.innerHTML=`<table><thead><tr><th>Destino</th><th class="num">Amostra</th><th class="num">Taxa de fechamento</th><th>Confiança</th></tr></thead><tbody>`+
-    arr.map(a=>{const pct=Math.round(a.taxa*100);const baixa=a.n<8;
-      return `<tr><td><i class="ic ic-map" style="vertical-align:-3px"></i> <b>${esc(a.destino)}</b></td><td class="num">${intBR(a.n)}</td>
-        <td class="num"><div style="display:flex;align-items:center;gap:10px;justify-content:flex-end"><span>${pct}%</span><div class="bar" style="width:90px"><i style="width:${pct}%"></i></div></div></td>
-        <td>${baixa?'<span class="pill warn"><span class="dot dot-amarelo"></span> baixa (amostra pequena)</span>':'<span class="pill ok"><span class="dot dot-verde"></span> ok</span>'}</td></tr>`;
-    }).join('')+`</tbody></table>`;
-}
-
-/* ---- AGENTES p/ datalist do A/B ---- */
-async function loadAgentesLista(){
-  try{ const ags=await dbGet('ia/agentes'); if(ags){ $('#agList').innerHTML=Object.keys(ags).map(k=>`<option value="${esc(k)}">`).join(''); } }catch(e){}
-}
-
-/* ---- A/B comparar (via gateway; se não houver, lê metaconhecimento) ---- */
-async function compararAB(){
-  const ag=$('#abAgente').value.trim(), sis=$('#abSistema').value.trim();
-  const out=$('#abResult');
-  if(!ag){ out.innerHTML=emptyBox('Informe o id do agente.'); return; }
-  out.innerHTML='<div class="spin"></div>';
-  let res=null;
-  try{
-    if(window.CFG.gatewayUrl){ res=await gwPost({sistema:sis||undefined, ab:{agente:ag}}); }
-    else { const meta=await dbGet('ia/metaconhecimento/ab/'+ag); res=meta; }
-  }catch(e){ out.innerHTML=emptyBox('Não foi possível comparar agora ('+esc(e.message)+'). Verifique a conexão em Config.'); return; }
-  if(!res){ out.innerHTML=emptyBox('Sem dados de A/B para este agente ainda.'); return; }
-  const A=res.A||res.a||{}, B=res.B||res.b||{};
-  const venc=(res.vencedora||res.winner||'').toUpperCase();
-  const card=(nome,o,win)=>`<div class="v ${win?'win':''}"><h4>Variante ${nome} ${win?'<span class="pill ok" style="margin-left:6px">vencedora</span>':''}</h4>
-      <div class="big">${o.recompensaMedia!=null?intBR(Math.round(o.recompensaMedia)):(o.media!=null?intBR(Math.round(o.media)):'—')}</div>
-      <div class="meta" style="color:var(--ink-3);font-weight:700">recompensa média</div>
-      <div style="margin-top:8px" class="meta">amostra: <b>${intBR(o.amostra||o.n||0)}</b></div>
-      <button class="btn ${win?'pri':'ghost'}" style="margin-top:12px" onclick="aprovarAB('${esc(ag)}','${esc(sis)}','${nome}')">Aprovar variante ${nome}</button></div>`;
-  out.innerHTML=`<div class="ab">${card('A',A,venc==='A')}${card('B',B,venc==='B')}</div>
-    ${!venc?'<div class="note" style="margin-top:14px">Ainda sem vencedora — amostra insuficiente para conclusão confiável.</div>':''}`;
-}
-async function aprovarAB(ag,sis,escolha){
-  if(!confirm('Aprovar a variante '+escolha+' como prompt oficial do agente "'+ag+'"?')) return;
-  if(!window.CFG.gatewayUrl){ alert('Configure o endereço do gateway iaCentral em Config para aprovar variantes.'); return; }
-  try{ await gwPost({sistema:sis||undefined, aprovarVariante:{agente:ag, escolha}}); alert('Variante '+escolha+' aprovada como prompt oficial.'); compararAB(); }
-  catch(e){ alert('Falha ao aprovar: '+e.message); }
-}
-
-/* ---- MARCA dinâmica (lê nó "marca") ---- */
-async function loadMarca(){
-  try{
-    const m=await dbGet('marca');
-    if(m&&(m.nome||m.logo)){
-      if(m.nome){ $('#brandName').textContent=m.nome; $('#brandName2').textContent=m.nome; }
-      if(m.logo){ const img=`<img src="${esc(m.logo)}" alt="logo">`; $('#brandLogo').innerHTML=img; $('#brandLogo2').innerHTML=img; $('#brandState').textContent='logo cadastrado'; }
+  addMsg('...', 'ia');
+  const balao = $('chatArea').lastElementChild;
+  try {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+      body: JSON.stringify({
+        sistema: 'console',
+        agente: agenteFoco || 'turia',
+        sessao: sessaoId,
+        mensagens: conversa.slice(-16)
+      })
+    });
+    const j = await r.json();
+    balao.remove();
+    if (!j.ok) {
+      const msg = j.erro === 'sem_saldo' ? (j.mensagem || 'Sem saldo.') : ('Não consegui responder: ' + (j.erro || 'erro') + (j.tentados ? ' — ' + j.tentados.map(t => t.alvo + ': ' + t.msg).join(' | ') : ''));
+      addMsg(msg, 'sis'); return;
     }
-  }catch(e){ /* mantém padrão cru: D laranja + Desenrola Digital */ }
+    conversa.push({ papel: 'assistant', texto: j.texto });
+    const marcas = [];
+    if (j.roteado) marcas.push('roteado → ' + j.agente);
+    if (j.escalado) marcas.push('escalado p/ reforço');
+    if (j.kos && j.kos.length) marcas.push('KOS: ' + j.kos.length);
+    if (j.mos && j.mos.length) marcas.push('MOS: ' + j.mos.length);
+    const carimbo = [j.provedor + ' · ' + j.modelo, marcas.join(' · '), (j.latenciaMs || 0) + 'ms'].filter(Boolean).join('  |  ');
+    addMsg(j.texto, 'ia', carimbo);
+    if (j.avisoReforco) addMsg('' + j.avisoReforco.mensagem + (j.avisoReforco.linkCompra ? ' → ' + j.avisoReforco.linkCompra : ''), 'sis');
+  } catch (e) { balao.remove(); addMsg('Falha de conexão com o cérebro: ' + (e.message || e), 'sis'); }
 }
 
-/* ---- carregar tudo ---- */
-async function loadAll(){
-  try{ await loadMetricas(); }catch(e){ if(e.message==='sem-config'){$('#kChamadas').textContent='—';$('#ovAgents').innerHTML=needCfg();$('#agentsTable').innerHTML=needCfg();} }
-  loadTelemetria().catch(()=>{});
-  loadMemoria().catch(()=>{});
-  loadConfianca().catch(()=>{});
-  loadAgentesLista();
-  loadMarca();
+// gravação no KOS (confirmada)
+$('kosNao').onclick = () => { $('kosConf').style.display = 'none'; addMsg('Gravação cancelada — nada foi escrito no KOS.', 'sis'); };
+$('kosOk').onclick = async () => {
+  const conteudo = $('kosTexto').value.trim(), titulo = $('kosTitulo').value.trim();
+  if (!conteudo) return toast('Texto vazio.', 'er');
+  const uid = 'kx.' + Date.now().toString(36) + '.' + Math.random().toString(36).slice(2, 6);
+  try {
+    await D.gravar('kos_extra/registros/' + uid.replace(/\./g, '_'), {
+      uid: uid, titulo: titulo || conteudo.slice(0, 60), conteudo: conteudo,
+      dominio: 'D00', natureza: 'fato', escopo: 'desenrola',
+      fonte: 'chat', curadoPor: S.email, curadoEm: Date.now(), status: 'ativo'
+    });
+    $('kosConf').style.display = 'none';
+    addMsg('Gravado no KOS como [uid: ' + uid + '] por ' + S.email + '. A IA já pode citar isso.', 'sis');
+  } catch (e) { toast('Erro ao gravar: ' + (e.message || e), 'er'); }
+};
+
+// ══════════ HISTÓRICO DAS CONVERSAS (só do Console) ══════════
+function mesAnterior() { const d = new Date(); d.setUTCMonth(d.getUTCMonth() - 1); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0'); }
+$('histRefresh').onclick = renderHistorico;
+async function renderHistorico() {
+  try {
+    let todos = [];
+    for (const m of [mesAtual(), mesAnterior()]) {
+      const o = (await D.ler('dialogos/console/' + m)) || {};
+      Object.keys(o).forEach(k => { const d = o[k]; if (d && d.ts) todos.push(d); });
+    }
+    if (!todos.length) { $('histLista').innerHTML = '<div class="vazio">Nenhuma conversa registrada ainda.</div>'; return; }
+    const ses = {};
+    todos.sort((a, b) => a.ts - b.ts).forEach(d => { (ses[d.sessao] = ses[d.sessao] || []).push(d); });
+    const ordem = Object.keys(ses).sort((a, b) => ses[b][0].ts - ses[a][0].ts);
+    $('histLista').innerHTML = ordem.slice(0, 30).map((sid, i) => {
+      const msgs = ses[sid];
+      const q = new Date(msgs[0].ts);
+      const ags = Array.from(new Set(msgs.map(m => m.agente)));
+      return '<div class="reg">' +
+        '<div class="cab" style="cursor:pointer" data-toggle="' + i + '">' +
+        '<span class="tt">' + q.toLocaleDateString('pt-BR') + ' ' + q.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + '</span>' +
+        '<span class="pill">' + msgs.length + ' msg</span>' +
+        '<span class="pill kos">' + esc(ags.join(', ')) + '</span>' +
+        (msgs.some(m => m.risco) ? '<span class="pill al"><i class="ic ic-alert"></i> revisar</span>' : '') +
+        '<span class="pill">' + esc(String(msgs[0].pergunta || '').slice(0, 55)) + '…</span>' +
+        '<button class="btn mini f fix">abrir</button></div>' +
+        '<div id="hist-' + i + '" class="esconde" style="margin-top:8px">' +
+        msgs.map(m => '<div style="border-left:2px solid var(--linha);padding:6px 0 6px 10px;margin-bottom:8px">' +
+          '<div style="font-size:12.5px"><b>Você:</b> ' + esc(m.pergunta) + '</div>' +
+          '<div style="font-size:12.5px;color:var(--tinta2);margin-top:4px"><b>TurIA:</b> ' + esc(m.resposta) + '</div>' +
+          '<div class="carimbo" style="margin:4px 0 0">' + esc(m.provedor + ' · ' + m.modelo) + (m.kos ? ' · KOS: ' + m.kos : '') + (m.escalado ? ' · <i class="ic ic-bolt"></i> escalado' : '') +
+          (m.removidos ? ' · <i class="ic ic-lock"></i> removido: ' + esc(m.removidos.join(', ')) : '') + '</div></div>').join('') +
+        '</div></div>';
+    }).join('');
+  } catch (e) { toast('Erro no histórico: ' + (e.message || e), 'er'); }
+}
+$('histLista').addEventListener('click', (e) => {
+  const cab = e.target.closest('[data-toggle]'); if (!cab) return;
+  const box = $('hist-' + cab.dataset.toggle); if (box) box.classList.toggle('esconde');
+});
+
+// ══════════ RESUMO SEMANAL ══════════
+async function renderResumos() {
+  try {
+    const tipo = $('semTipo').value;
+    const o = (await D.ler('resumos/' + tipo)) || {};
+    const chaves = Object.keys(o).filter(k => k[0] !== '_').sort().reverse();
+    if (!chaves.length) { $('semSel').innerHTML = ''; $('semConteudo').innerHTML = '<div class="vazio">Ainda não há resumo ' + tipo + '.</div>'; return; }
+    $('semSel').innerHTML = chaves.map(k => '<option value="' + esc(k) + '">' + esc(k) + '</option>').join('');
+    window._resumos = o;
+    mostrarResumo();
+  } catch (e) { }
+}
+/* resumo agora é widget */
+/* resumo agora é widget */
+
+// Só o NÚMERO do que veio dos sistemas — o conteúdo fica oculto, como combinado.
+async function renderAbsorvido() {
+  try {
+    const dias = [];
+    for (let i = 0; i < 30; i++) { const d = new Date(Date.now() - i * 86400000); dias.push(d.toISOString().slice(0, 10)); }
+    let conversas = 0, vendas = 0, sistemas = {}, bruto = 0;
+    for (const d of dias.slice(0, 30)) {
+      const o = (await D.ler('sessoes/' + d)) || {};
+      Object.keys(o).forEach(k => {
+        const s = o[k]; if (!s) return;
+        conversas++; sistemas[s.sistema] = true;
+        if (s.desfecho === 'venda') vendas++;
+        bruto += (s.msgs || 0);
+      });
+    }
+    $('absKpi').innerHTML =
+      '<div class="b"><div class="n">' + conversas + '</div><div class="l">Conversas (30 dias)</div></div>' +
+      '<div class="b"><div class="n">' + bruto + '</div><div class="l">Mensagens registradas</div></div>' +
+      '<div class="b"><div class="n">' + vendas + '</div><div class="l">Viraram venda</div></div>' +
+      '<div class="b"><div class="n">' + Object.keys(sistemas).length + '</div><div class="l">Sistemas alimentando</div></div>';
+  } catch (e) { $('absKpi').innerHTML = '<div class="vazio">—</div>'; }
+}
+function mostrarResumo() {
+  const r = (window._resumos || {})[$('semSel').value];
+  if (!r) return;
+  if (r.status !== 'pronto') { $('semConteudo').innerHTML = '<div class="vazio">' + esc(r.resumo || r.erro || 'Sem resumo nesta semana.') + '</div>'; return; }
+  const m = r.medidas || {};
+  const top = (obj, n) => Object.keys(obj || {}).sort((a, b) => obj[b] - obj[a]).slice(0, n).map(k => k + ' (' + obj[k] + ')').join(', ') || '—';
+  $('semConteudo').innerHTML =
+    '<div class="linha" style="margin-bottom:10px"><span class="pill">' + r.total + ' interações</span>' +
+    '<span class="pill ' + (m.semKos > m.comKos ? 'al' : 'ok') + '">' + (m.semKos || 0) + ' sem lastro na memória</span>' +
+    '<span class="pill">' + (m.escalados || 0) + ' escalonamentos</span>' +
+    '<span class="pill kos">por ' + esc(r.analisadoPor || '?') + '</span></div>' +
+    (r.alertas && r.alertas.length ? '<div class="aviso" style="border-left-color:var(--perigo);margin-bottom:10px"><b><i class="ic ic-alert"></i> Alertas:</b><br>' + r.alertas.map(a => '• ' + esc(a)).join('<br>') + '</div>' : '') +
+    '<div style="white-space:pre-wrap;font-size:13.5px;line-height:1.6">' + esc(r.resumo) + '</div>' +
+    '<div class="linha" style="margin-top:12px"><span class="pill">idade: ' + esc(top(m.demografia && m.demografia.faixaEtaria, 3)) + '</span>' +
+    '<span class="pill">estado: ' + esc(top(m.demografia && m.demografia.estado, 3)) + '</span>' +
+    '<span class="pill">gênero: ' + esc(top(m.demografia && m.demografia.genero, 2)) + '</span></div>' +
+    (r.padroes && r.padroes.length ? '<div class="card" style="margin:10px 0 0;background:var(--surface-2)"><b style="font-size:13px"><i class="ic ic-chart"></i> Padrões observados</b>' +
+      r.padroes.map(p => '<div class="reg" style="margin-top:8px"><div class="cab"><span class="tt">' + esc(p.padrao || '') + '</span>' +
+        (p.ocorrencias ? '<span class="pill ok">' + p.ocorrencias + '×</span>' : '') + '</div>' +
+        '<div class="tx"><b>Evidência:</b> ' + esc(p.evidencia || '') + (p.acao ? '<br><b>Ação:</b> ' + esc(p.acao) : '') + '</div></div>').join('') + '</div>' : '') +
+    (r.sazonalidade && r.sazonalidade.length ? '<div class="card" style="margin:10px 0 0;background:var(--surface-2)"><b style="font-size:13px"><i class="ic ic-cal"></i> Sazonalidade</b>' +
+      r.sazonalidade.map(p => '<div class="reg" style="margin-top:8px"><div class="cab"><span class="tt">' + esc(p.periodo || '') + '</span></div><div class="tx">' + esc(p.padrao || '') + '<br><i>' + esc(p.evidencia || '') + '</i></div></div>').join('') + '</div>' : '') +
+    (r.tendencias && r.tendencias.length ? '<div class="aviso" style="margin-top:10px"><b><i class="ic ic-trend"></i> Tendências:</b><br>' + r.tendencias.map(t => '• ' + esc(t.tendencia || '') + ' — <i>' + esc(t.evidencia || '') + '</i>').join('<br>') + '</div>' : '') +
+    (r.produto && r.produto.length ? '<div class="aviso" style="margin-top:10px"><b><i class="ic ic-bulb"></i> Sobre o produto:</b><br>' + r.produto.map(p => '• ' + esc(p)).join('<br>') + '</div>' : '') +
+    (r.recomendacoes && r.recomendacoes.length ? '<div class="aviso" style="margin-top:10px"><b><i class="ic ic-target"></i> Recomendações:</b><br>' + r.recomendacoes.map(p => '• ' + esc(p)).join('<br>') + '</div>' : '') +
+    (r.comissaoMediaMercado ? '<div class="linha" style="margin-top:10px"><span class="pill kos">comissão média do mercado: ' + r.comissaoMediaMercado + '% (dado anônimo)</span></div>' : '') +
+    (r.memoriasPropostas && r.memoriasPropostas.length ? '<div class="aviso" style="margin-top:10px"><i class="ic ic-ai"></i> <b>' + r.memoriasPropostas.length + ' memória(s) proposta(s)</b> — veja no KosMos para aprovar.</div>' : '') +
+    (r.prompts && r.prompts.length ? '<div class="card" style="margin:10px 0 0;background:var(--surface-2)"><b style="font-size:13px"><i class="ic ic-pen"></i> Melhorias de prompt sugeridas</b>' +
+      r.prompts.map(p => '<div class="reg" style="margin-top:8px"><div class="cab"><span class="tt">' + esc(p.agente) + '</span></div>' +
+        '<div class="tx"><b>Problema:</b> ' + esc(p.problema || '') + '<br><b>Sugestão:</b> ' + esc(p.sugestao || '') + '</div></div>').join('') + '</div>' : '');
 }
 
-/* ============================================================================
-   NAVEGAÇÃO
-   ========================================================================== */
-const TITLES={overview:['Visão Geral','Panorama do cérebro hoje'],agents:['Agentes','Métricas por agente'],telemetry:['Telemetria','Chamadas e custos do mês'],memory:['Memória','Desfechos das sessões'],ab:['A/B de Prompt','Testar e aprovar variantes'],confidence:['Confiança','Taxa de fechamento por destino'],config:['Config','Conexão e marca']};
-function go(view){
-  $$('.nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===view));
-  $$('.wrap').forEach(w=>w.classList.toggle('show',w.dataset.view===view));
-  $('#pageTitle').textContent=TITLES[view][0]; $('#pageSub').textContent=TITLES[view][1];
-  toggleSide(false);
+// ══════════ MATRIZ GLOBAL (o prompt-mãe) ══════════
+async function renderMatriz() {
+  try {
+    const m = (await D.ler('ia/matriz/global')) || {};
+    $('mgTexto').value = m.texto || '';
+    $('mgInfo').textContent = m.versao ? ('v' + m.versao + (m.em ? ' · ' + dataISO(m.em) : '')) : 'ainda não definida';
+  } catch (e) { toast('Erro ao ler a Matriz: ' + (e.message || e), 'er'); }
 }
-$('#nav').addEventListener('click',e=>{const a=e.target.closest('a[data-view]');if(a)go(a.dataset.view);});
-function toggleSide(open){ $('#side').classList.toggle('open',open); $('#scrim').classList.toggle('on',open); }
+$('mgRecarregar').onclick = renderMatriz;
+$('mgSalvar').onclick = async () => {
+  const t = $('mgTexto').value;
+  if (!t.trim() && !confirm('A Matriz Global vai ficar VAZIA. Todos os agentes perdem a identidade comum. Confirma?')) return;
+  try {
+    const at = (await D.ler('ia/matriz/global')) || {};
+    await D.gravar('ia/matriz/global', { texto: t, versao: (Number(at.versao) || 0) + 1, em: Date.now(), por: S.email });
+    renderMatriz();
+    toast('Matriz Global salva — vale na próxima resposta de todos os agentes.');
+  } catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
 
-/* ---- config ---- */
-function fillCfg(){ $('#cfgDb').value=window.CFG.dbUrl||''; $('#cfgToken').value=window.CFG.token||''; $('#cfgGw').value=window.CFG.gatewayUrl||''; }
-function saveCfg(){
-  window.CFG.dbUrl=$('#cfgDb').value.trim();
-  window.CFG.token=$('#cfgToken').value.trim();
-  window.CFG.gatewayUrl=$('#cfgGw').value.trim();
-  try{ localStorage.setItem('turia_cfg',JSON.stringify(window.CFG)); }catch(e){}
-  $('#cfgMsg').textContent='Salvo. Atualizando…'; $('#cfgMsg').style.color='var(--ok)';
-  setTimeout(()=>{$('#cfgMsg').textContent='';},2500);
-  loadAll();
+// ══════════ AGENTES ══════════
+function renderAgentes() {
+  const ids = Object.keys(S.agentes).sort();
+  const at = $('agSel').value;
+  $('agSel').innerHTML = ids.map(id => '<option value="' + esc(id) + '">' + esc(S.agentes[id].nome || id) + '</option>').join('');
+  if (at && S.agentes[at]) $('agSel').value = at;
+  mostrarAgente();
+}
+function mostrarAgente() {
+  const a = S.agentes[$('agSel').value];
+  if (!a) return;
+  $('agNome').value = a.nome || ''; $('agPapel').value = a.papel || '';
+  $('agModelo').value = a.modelo || ''; $('agTemp').value = Number.isFinite(a.temp) ? a.temp : 0.7;
+  $('agPrompt').value = a.prompt || '';
+  $('agInfo').textContent = 'base · v' + (a.versao || 1);
+}
+$('agSel').onchange = mostrarAgente;
+$('agSalvar').onclick = async () => {
+  const id = $('agSel').value; if (!id) return;
+  const p = { nome: $('agNome').value.trim(), papel: $('agPapel').value.trim(), modelo: $('agModelo').value.trim(),
+    temp: parseFloat($('agTemp').value) || 0.7, prompt: $('agPrompt').value, tier: 'base',
+    versao: (S.agentes[id].versao || 1) + 1, em: Date.now() };
+  try { await D.atualizar('ia/agentes/' + id, p); Object.assign(S.agentes[id], p); renderAgentes(); toast('Agente salvo.'); }
+  catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
+$('agNovo').onclick = async () => {
+  const id = prompt('Id do agente (só letras, números e hífen):');
+  if (!id) return;
+  const lim = id.trim().toLowerCase().replace(/[^a-z0-9-]/g, '');
+  if (!lim) return toast('Id inválido.', 'er');
+  if (S.agentes[lim]) return toast('Já existe.', 'er');
+  const novo = { id: lim, nome: lim, papel: '', prompt: 'Você é ...', tier: 'base', modelo: '', rag: true, temp: 0.7, versao: 1, em: Date.now() };
+  try { await D.gravar('ia/agentes/' + lim, novo); S.agentes[lim] = novo; renderAgentes(); $('agSel').value = lim; mostrarAgente(); toast('Agente criado.'); }
+  catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
+$('agExcluir').onclick = async () => {
+  const id = $('agSel').value; if (!id) return;
+  if (!confirm('Excluir o agente "' + id + '"? Isso não pode ser desfeito.')) return;
+  try { await D.remover('ia/agentes/' + id); delete S.agentes[id]; renderAgentes(); toast('Agente excluído.'); }
+  catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
+
+// ══════════ KOSMOS ══════════
+let mosCache = {};
+async function renderKosMos() {
+  try {
+    const [kosCur, kex, mos] = await Promise.all([D.ler('kos_rag/current'), D.ler('kos_extra/registros'), D.ler('mos/registros')]);
+    $('kKos').textContent = (kosCur && kosCur.totalDocs) || 0;
+    $('kKex').textContent = Object.keys(kex || {}).length;
+    mosCache = mos || {};
+    const agora = Date.now();
+    const vivos = Object.keys(mosCache).filter(k => vivo(mosCache[k], agora));
+    $('kMos').textContent = vivos.length;
+    $('kPend').textContent = vivos.filter(k => (mosCache[k].status === 'proposto' || !mosCache[k].curado)).length;
+    $('kMad').textContent = vivos.filter(k => mosCache[k].maduro === true).length;
+    renderMosLista(); renderKex(kex || {});
+  } catch (e) { toast('Erro ao ler memórias: ' + (e.message || e), 'er'); }
+}
+function vivo(r, ref) {
+  if (!r) return false;
+  if (['expirado', 'descartado', 'promovido'].includes(r.status)) return false;
+  if (r.semPrazo === true || r.expiraEm == null) return true;
+  return (r.expiraEm || 0) > (ref || Date.now());
+}
+function renderMosLista() {
+  const f = $('mosFiltro').value, agora = Date.now();
+  let ids = Object.keys(mosCache);
+  if (f === 'maduros') ids = ids.filter(k => vivo(mosCache[k], agora) && mosCache[k].maduro === true);
+  else if (f === 'pendentes') ids = ids.filter(k => vivo(mosCache[k], agora) && (mosCache[k].status === 'proposto' || !mosCache[k].curado));
+  else if (f === 'vivos') ids = ids.filter(k => vivo(mosCache[k], agora));
+  else ids = ids.filter(k => !vivo(mosCache[k], agora));
+  ids.sort((a, b) => ((mosCache[b].maduro ? 1 : 0) - (mosCache[a].maduro ? 1 : 0)) || ((mosCache[b].ocorrencias || 0) - (mosCache[a].ocorrencias || 0)));
+  if (!ids.length) { $('mosLista').innerHTML = '<div class="vazio">Nada aqui. Quando a TurIA observar padrões nos sistemas — ou um sistema enviar um aprendizado — as propostas aparecem aqui para você curar.</div>'; return; }
+  $('mosLista').innerHTML = ids.map(k => {
+    const r = mosCache[k] || {};
+    const prazo = r.semPrazo || r.expiraEm == null ? 'sem prazo' : ('vale até ' + dataISO(r.expiraEm));
+    const org = r.origemTipo === 'web' ? ('<i class="ic ic-globe"></i> web' + (r.fonteUrl ? '' : ' (sem link)'))
+      : r.origemTipo === 'sistema' ? ('<i class="ic ic-plug"></i> ' + esc(r.origemSistema || '?'))
+      : r.origemTipo === 'chat' ? '<i class="ic ic-chat"></i> chat'
+      : '<i class="ic ic-ai"></i> observado pela TurIA';
+    return '<div class="reg" data-mid="' + esc(k) + '">' +
+      '<div class="cab"><span class="tt">' + esc(r.titulo || '(sem título)') + '</span>' +
+      '<span class="pill mono">' + esc(r.id || k) + '</span>' +
+      '<span class="pill">' + esc(r.natureza || 'licao') + '</span>' +
+      '<span class="pill">' + esc(org) + '</span>' +
+      (r.fonteUrl ? '<a class="pill kos" href="' + esc(r.fonteUrl) + '" target="_blank" rel="noopener"><i class="ic ic-link"></i> conferir fonte</a>' : '') +
+      '<span class="pill ' + (r.semPrazo || r.expiraEm == null ? '' : 'al') + '">' + prazo + '</span>' +
+      (r.ocorrencias > 1 ? '<span class="pill">visto ' + r.ocorrencias + '×</span>' : '') +
+      (r.maduro ? '<span class="pill ok"><i class="ic ic-star"></i> madura — a TurIA confirmou</span>' : '') + '</div>' +
+      '<div class="tx">' + esc(r.conteudo || '') + '</div>' +
+      '<div class="linha" style="margin-top:8px">' +
+      '<input type="date" class="mos-data" style="flex:0 0 160px" value="' + (r.expiraEm ? dataISO(r.expiraEm) : '') + '">' +
+      '<button class="btn mini f fix mos-prazo">Aplicar validade</button>' +
+      '<button class="btn mini f fix mos-semprazo">Sem prazo</button>' +
+      '<button class="btn mini g fix mos-ok">Aprovar → KOS</button>' +
+      '<button class="btn mini p fix mos-no">Descartar</button></div></div>';
+  }).join('');
+}
+$('mosFiltro').onchange = renderMosLista;
+$('mosRefresh').onclick = renderKosMos;
+$('mosLista').addEventListener('click', async (e) => {
+  const box = e.target.closest('div[data-mid]'); if (!box) return;
+  const k = box.dataset.mid, r = mosCache[k];
+  if (!r) return;
+  try {
+    if (e.target.classList.contains('mos-ok')) {
+      const uid = 'kx.' + (r.id || k);
+      await D.gravar('kos_extra/registros/' + uid.replace(/\./g, '_'), {
+        uid: uid, titulo: r.titulo || '(sem título)', conteudo: r.conteudo,
+        dominio: r.dominio || 'D00', natureza: r.natureza || 'fato', escopo: r.escopo || 'desenrola',
+        tags: r.tags || [], fonte: 'curadoria:' + (r.origemSistema || 'mos'), fonteUrl: r.fonteUrl || '',
+        curadoPor: S.email, curadoEm: Date.now(), origemMos: r.id || k, status: 'ativo'
+      });
+      await D.atualizar('mos/registros/' + k, { status: 'promovido', curado: true, promovidoEm: Date.now(), promovidoPor: S.email });
+      toast('Aprovado — foi para o KOS.'); renderKosMos();
+    } else if (e.target.classList.contains('mos-no')) {
+      await D.atualizar('mos/registros/' + k, { status: 'descartado', descartadoEm: Date.now() });
+      renderKosMos();
+    } else if (e.target.classList.contains('mos-prazo')) {
+      const v = box.querySelector('.mos-data').value;
+      if (!v) return toast('Escolha uma data.', 'er');
+      const ts = new Date(v + 'T23:59:59').getTime();
+      await D.atualizar('mos/registros/' + k, { expiraEm: ts, semPrazo: false, status: 'ativo', curado: true });
+      toast('Validade definida: ' + v); renderKosMos();
+    } else if (e.target.classList.contains('mos-semprazo')) {
+      await D.atualizar('mos/registros/' + k, { expiraEm: null, semPrazo: true, status: 'ativo', curado: true });
+      toast('Memória sem prazo.'); renderKosMos();
+    }
+  } catch (err) { toast('Erro: ' + (err.message || err), 'er'); }
+});
+function renderKex(kex) {
+  const ids = Object.keys(kex);
+  if (!ids.length) { $('kexLista').innerHTML = '<div class="vazio">Nenhuma memória curada ainda.</div>'; return; }
+  $('kexLista').innerHTML = ids.slice(0, 40).map(k => {
+    const r = kex[k] || {};
+    return '<div class="reg" data-kid="' + esc(k) + '"><div class="cab">' +
+      '<span class="tt">' + esc(r.titulo || '') + '</span>' +
+      '<span class="pill mono">' + esc(r.uid || k) + '</span>' +
+      '<span class="pill kos">' + esc(r.fonte || 'curadoria') + '</span>' +
+      '<span class="pill">por ' + esc(r.curadoPor || '?') + '</span>' +
+      '<button class="btn mini p fix kex-del">Remover</button></div>' +
+      '<div class="tx">' + esc(r.conteudo || '') + '</div></div>';
+  }).join('');
+}
+$('kexLista').addEventListener('click', async (e) => {
+  if (!e.target.classList.contains('kex-del')) return;
+  const box = e.target.closest('div[data-kid]'); if (!box) return;
+  if (!confirm('Remover esta memória do KOS?')) return;
+  try { await D.remover('kos_extra/registros/' + box.dataset.kid); toast('Removida.'); renderKosMos(); }
+  catch (err) { toast('Erro: ' + (err.message || err), 'er'); }
+});
+
+// ══════════ MODELOS ══════════
+function renderModelos() {
+  const r = S.cfg.roteador || {};
+  $('rotModelo').value = r.modelo || ''; $('rotAtivo').value = r.ativo === false ? '0' : '1';
+  $('rotPadrao').value = S.cfg.agentePadrao || 'recepcao';
+  $('escalOn').value = S.cfg.escalonamento === false ? '0' : '1';
+  const rot = S.cfg.roteamento || {};
+  $('rotBase').value = (rot.base || []).join('\n');
+  $('rotReforco').value = (rot.reforco || []).join('\n');
+  renderCatalogo(); renderMpa();
+}
+$('rotSalvar').onclick = async () => {
+  try {
+    const esc = $('escalOn').value === '1';
+    await D.atualizar('ia/config', { roteador: { ativo: $('rotAtivo').value === '1', modelo: $('rotModelo').value.trim() }, agentePadrao: $('rotPadrao').value.trim() || 'recepcao', escalonamento: esc });
+    S.cfg.roteador = { ativo: $('rotAtivo').value === '1', modelo: $('rotModelo').value.trim() };
+    S.cfg.agentePadrao = $('rotPadrao').value.trim() || 'recepcao';
+    S.cfg.escalonamento = esc;
+    toast('Modelo principal salvo.');
+  } catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
+$('rotaSalvar').onclick = async () => {
+  const lin = (t) => t.split('\n').map(x => x.trim()).filter(Boolean);
+  const novo = { base: lin($('rotBase').value), reforco: lin($('rotReforco').value) };
+  try { await D.gravar('ia/config/roteamento', novo); S.cfg.roteamento = novo; toast('Roteamento salvo — vale na próxima resposta.'); }
+  catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
+function precosLista() { const p = S.cfg.precos; return Array.isArray(p) ? p.slice() : Object.keys(p || {}).map(k => Object.assign({ id: k }, p[k])); }
+function renderCatalogo() {
+  const l = precosLista();
+  if (!l.length) { $('catLista').innerHTML = '<div class="vazio">Catálogo vazio.</div>'; return; }
+  $('catLista').innerHTML = '<table><thead><tr><th>Modelo</th><th style="width:110px">US$ entrada</th><th style="width:110px">US$ saída</th><th style="width:60px"></th></tr></thead><tbody>' +
+    l.map((p, i) => '<tr><td class="mono">' + esc(p.id) + '</td><td>' + (p.inP || 0) + '</td><td>' + (p.outP || 0) + '</td>' +
+      '<td><button class="btn mini p cat-del" data-i="' + i + '">×</button></td></tr>').join('') + '</tbody></table>';
+}
+$('catAdd').onclick = async () => {
+  const id = $('catId').value.trim();
+  if (!id) return toast('Informe apelido:modelo.', 'er');
+  const l = precosLista();
+  l.push({ id: id, inP: parseFloat($('catIn').value) || 0, outP: parseFloat($('catOut').value) || 0 });
+  try { await D.gravar('ia/config/precos', l); S.cfg.precos = l; $('catId').value = ''; $('catIn').value = ''; $('catOut').value = ''; renderCatalogo(); toast('Modelo adicionado.'); }
+  catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
+$('catLista').addEventListener('click', async (e) => {
+  if (!e.target.classList.contains('cat-del')) return;
+  const l = precosLista(); l.splice(parseInt(e.target.dataset.i, 10), 1);
+  try { await D.gravar('ia/config/precos', l); S.cfg.precos = l; renderCatalogo(); }
+  catch (err) { toast('Erro: ' + (err.message || err), 'er'); }
+});
+function renderMpa() {
+  const ids = Object.keys(S.agentes).sort();
+  $('mpaLista').innerHTML = '<table><thead><tr><th>Agente</th><th>Modelo fixo</th><th style="width:80px"></th></tr></thead><tbody>' +
+    ids.map(id => '<tr><td>' + esc(S.agentes[id].nome || id) + '</td>' +
+      '<td><input type="text" class="mono mpa-in" data-id="' + esc(id) + '" value="' + esc(S.agentes[id].modelo || '') + '" placeholder="(roteamento)"></td>' +
+      '<td><button class="btn mini mpa-ok" data-id="' + esc(id) + '">ok</button></td></tr>').join('') + '</tbody></table>';
+}
+$('mpaLista').addEventListener('click', async (e) => {
+  if (!e.target.classList.contains('mpa-ok')) return;
+  const id = e.target.dataset.id;
+  const v = $('mpaLista').querySelector('.mpa-in[data-id="' + id + '"]').value.trim();
+  try { await D.atualizar('ia/agentes/' + id, { modelo: v }); S.agentes[id].modelo = v; toast('Modelo do agente salvo.'); }
+  catch (err) { toast('Erro: ' + (err.message || err), 'er'); }
+});
+
+// ══════════ CÉREBRO ══════════
+async function renderCerebro() {
+  $('cbUrl').value = S.cfg.funcUrl || '';
+  $('cbTok').value = S.cfg.consoleToken || '';
+  $('linkCompra').value = S.cfg.linkCompra || '';
+  $('cambio').value = Number(S.cfg.cambio) || 5.5;
+  $('senhaEstado').textContent = S.cfg.senhaReforcoHash ? 'definida' : 'sem senha';
+  renderSistemas(); renderCusto();
+}
+$('cbUrlSalvar').onclick = async () => { const v = $('cbUrl').value.trim(); await D.gravar('ia/config/funcUrl', v); S.cfg.funcUrl = v; toast('Endereço salvo.'); };
+$('cbTokSalvar').onclick = async () => { const v = $('cbTok').value.trim(); await D.gravar('ia/config/consoleToken', v); S.cfg.consoleToken = v; toast('Token salvo — o Chat já pode usar.'); };
+
+// Gera um token novo, grava o hash no sistema E o token no Console. Uma ação, zero cópia.
+$('cbTokGerar').onclick = async () => {
+  if (!confirm('Gerar uma chave nova para o sistema "console"?\n\nA chave antiga para de funcionar na hora. O Chat volta a funcionar automaticamente.')) return;
+  try {
+    const tok = gerarToken('console');
+    const hash = await sha256(tok);
+    if (hash[0] === 'x') return toast('Precisa de HTTPS para gerar a chave.', 'er');
+    await D.atualizar('ia/config/sistemas/console', { tokenHash: hash, tokenEm: Date.now() });
+    await D.gravar('ia/config/consoleToken', tok);
+    S.cfg.consoleToken = tok;
+    $('cbTok').value = tok;
+    toast('Chave nova gerada e ligada. O Chat já funciona.');
+  } catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
+
+// Testa o token de verdade contra o cérebro (ping autenticado)
+$('cbTokTestar').onclick = async () => {
+  const u = ($('cbUrl').value || '').trim(), t = ($('cbTok').value || '').trim();
+  if (!u || !t) return toast('Preencha o endereço e o token.', 'er');
+  try {
+    const r = await fetch(u, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t }, body: JSON.stringify({ sistema: 'console', ping: true }) });
+    const j = await r.json();
+    if (j.ok) toast('Token válido — iaCentral v' + j.versao);
+    else if (j.erro === 'token_invalido') toast('Token inválido. Clique em "Gerar e usar".', 'er');
+    else toast('Resposta: ' + (j.erro || '?'), 'er');
+  } catch (e) { toast('Falhou: ' + (e.message || e), 'er'); }
+};
+$('cbTestar').onclick = async () => {
+  const u = $('cbUrl').value.trim(); if (!u) return toast('Informe o endereço.', 'er');
+  try { const r = await fetch(u); const j = await r.json(); toast(j.ok ? ('no ar — iaCentral v' + j.versao) : 'Resposta inesperada.'); }
+  catch (e) { toast('Falhou: ' + (e.message || e), 'er'); }
+};
+function renderSistemas() {
+  const sis = S.cfg.sistemas || {};
+  const ids = Object.keys(sis);
+  if (!ids.length) { $('sisLista').innerHTML = '<div class="vazio">Nenhum sistema conectado.</div>'; return; }
+  $('sisLista').innerHTML = ids.map(id => {
+    const x = sis[id] || {};
+    return '<div class="reg" data-sid="' + esc(id) + '"><div class="cab">' +
+      '<span class="tt mono">' + esc(id) + '</span><span class="pill">' + esc(x.nome || '') + '</span>' +
+      '<span class="pill ' + (x.tokenHash ? 'ok' : 'er') + '">' + (x.tokenHash ? '<i class="ic ic-key"></i> chave ativa' : 'sem chave') + '</span>' +
+      '<span class="pill ' + ((Number(x.saldoBRL) || 0) <= 0 ? 'al' : 'ok') + '">' + fmtBRL(x.saldoBRL) + '</span>' +
+      '<button class="btn mini fix sis-cred">+ Crédito</button>' +
+      '<button class="btn mini f fix sis-regen">Regenerar chave</button>' +
+      '<button class="btn mini p fix sis-del">Revogar</button></div></div>';
+  }).join('');
+}
+function gerarToken(sid) { const a = new Uint8Array(24); crypto.getRandomValues(a); return 'tia_' + sid + '_' + Array.from(a).map(b => b.toString(16).padStart(2, '0')).join(''); }
+$('sisCriar').onclick = async () => {
+  const id = $('sisId').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  if (!id) return toast('Informe um id.', 'er');
+  const tok = gerarToken(id), hash = await sha256(tok);
+  try {
+    await D.atualizar('ia/config/sistemas/' + id, { nome: $('sisNome').value.trim() || id, tetoDia: parseInt($('sisTeto').value) || 1000, usdDia: parseFloat($('sisUsd').value) || 5, saldoBRL: 0, tokenHash: hash, em: Date.now() });
+    S.cfg = (await D.ler('ia/config')) || {};
+    $('sisId').value = ''; $('sisNome').value = '';
+    renderSistemas();
+    prompt('Chave de "' + id + '" — copie AGORA (aparece uma única vez):', tok);
+  } catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
+$('sisLista').addEventListener('click', async (e) => {
+  const box = e.target.closest('div[data-sid]'); if (!box) return;
+  const sid = box.dataset.sid;
+  try {
+    if (e.target.classList.contains('sis-cred')) {
+      const v = parseFloat(prompt('Adicionar quantos R$ em "' + sid + '"?', '100'));
+      if (!(v > 0)) return;
+      await D.transacao('ia/config/sistemas/' + sid + '/saldoBRL', (a) => (Number(a) || 0) + v);
+      S.cfg = (await D.ler('ia/config')) || {}; renderSistemas(); toast(fmtBRL(v) + ' adicionados.');
+    } else if (e.target.classList.contains('sis-regen')) {
+      if (!confirm('Regenerar a chave de "' + sid + '"? A antiga para de funcionar.')) return;
+      const tok = gerarToken(sid);
+      await D.atualizar('ia/config/sistemas/' + sid, { tokenHash: await sha256(tok), tokenEm: Date.now() });
+      prompt('Nova chave de "' + sid + '" — copie AGORA:', tok);
+    } else if (e.target.classList.contains('sis-del')) {
+      if (!confirm('Revogar o sistema "' + sid + '"?')) return;
+      await D.remover('ia/config/sistemas/' + sid);
+      S.cfg = (await D.ler('ia/config')) || {}; renderSistemas();
+    }
+  } catch (err) { toast('Erro: ' + (err.message || err), 'er'); }
+});
+$('senhaDef').onclick = async () => {
+  const s1 = prompt('Nova senha do Reforço:'); if (!s1) return;
+  const s2 = prompt('Repita a senha:'); if (s1 !== s2) return toast('As senhas não conferem.', 'er');
+  try { const h = await sha256(s1); await D.gravar('ia/config/senhaReforcoHash', h); S.cfg.senhaReforcoHash = h; renderCerebro(); toast('Senha definida.'); }
+  catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
+$('linkSalvar').onclick = async () => { const v = $('linkCompra').value.trim(); await D.gravar('ia/config/linkCompra', v); S.cfg.linkCompra = v; toast('Link salvo.'); };
+$('cambioSalvar').onclick = async () => { const v = parseFloat($('cambio').value) || 5.5; await D.gravar('ia/config/cambio', v); S.cfg.cambio = v; toast('Câmbio salvo.'); };
+async function renderCusto() {
+  try {
+    const t = (await D.ler('ia/telemetria/' + mesAtual())) || {};
+    let usd = 0, n = 0;
+    Object.values(t).forEach(r => { if (r && r.custoUSD) usd += r.custoUSD; if (r && r.ts) n++; });
+    const cam = Number(S.cfg.cambio) || 5.5;
+    $('custoMes').textContent = 'US$ ' + usd.toFixed(4) + ' ≈ ' + fmtBRL(usd * cam) + ' · ' + n + ' respostas';
+  } catch (e) { $('custoMes').textContent = '—'; }
+}
+$('bkExportar').onclick = async () => {
+  try {
+    const [cfg, ag, mos, kex] = await Promise.all([D.ler('ia/config'), D.ler('ia/agentes'), D.ler('mos/registros'), D.ler('kos_extra/registros')]);
+    const c = JSON.parse(JSON.stringify(cfg || {}));
+    delete c.consoleToken; delete c.senhaReforcoHash;
+    if (c.sistemas) Object.keys(c.sistemas).forEach(k => delete c.sistemas[k].tokenHash);
+    const b = new Blob([JSON.stringify({ versao: VERSAO, em: new Date().toISOString(), config: c, agentes: ag, mos: mos, kos_extra: kex }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'turia-backup-' + dataISO(Date.now()) + '.json'; a.click();
+    toast('Backup baixado (sem chaves).');
+  } catch (e) { toast('Erro: ' + (e.message || e), 'er'); }
+};
+
+// ══════════ DASHBOARD ══════════
+/* Dashboard agora é widget (PAINEL) */
+async function renderDash() {
+  try {
+    const t = (await D.ler('ia/telemetria/' + mesAtual())) || {};
+    const regs = Object.values(t).filter(r => r && r.ts);
+    const cam = Number(S.cfg.cambio) || 5.5;
+    let usd = 0, escal = 0;
+    const porAgente = {}, porModelo = {}, porSis = {};
+    regs.forEach(r => {
+      usd += r.custoUSD || 0;
+      if (r.escalado) escal++;
+      porAgente[r.agente] = (porAgente[r.agente] || 0) + 1;
+      const m = (r.provedor || '?') + ':' + (r.modelo || '?');
+      porModelo[m] = (porModelo[m] || 0) + 1;
+      if (!porSis[r.sistema]) porSis[r.sistema] = { n: 0, usd: 0 };
+      porSis[r.sistema].n++; porSis[r.sistema].usd += r.custoUSD || 0;
+    });
+    $('dChamados').textContent = regs.length;
+    $('dCusto').textContent = (usd * cam).toFixed(2);
+    $('dEscal').textContent = escal;
+    const ordA = Object.keys(porAgente).sort((a, b) => porAgente[b] - porAgente[a]);
+    const nomeAg = (id) => (S.agentes[id] && S.agentes[id].nome) || id || '—';
+    $('dAgMais').textContent = ordA.length ? nomeAg(ordA[0]) : '—';
+    $('dAgMenos').textContent = ordA.length ? nomeAg(ordA[ordA.length - 1]) : '—';
+    const ordM = Object.keys(porModelo).sort((a, b) => porModelo[b] - porModelo[a]);
+    $('dModelo').textContent = ordM.length ? ordM[0] : '—';
+
+    const sis = S.cfg.sistemas || {};
+    const ids = Array.from(new Set(Object.keys(sis).concat(Object.keys(porSis))));
+    $('dashTab').innerHTML = ids.length ? ids.map(id => {
+      const s = sis[id] || {}, u = porSis[id] || { n: 0, usd: 0 };
+      const temReforco = (Number(s.saldoBRL) || 0) > 0;
+      return '<tr><td><b>' + esc(s.nome || id) + '</b><br><span class="pill mono">' + esc(id) + '</span></td>' +
+        '<td>' + u.n + '</td><td>' + fmtBRL(u.usd * cam) + '</td>' +
+        '<td><span class="pill ' + (temReforco ? 'ok' : '') + '">' + (temReforco ? 'sim' : 'não') + '</span></td>' +
+        '<td>' + fmtBRL(s.saldoBRL) + '</td></tr>';
+    }).join('') : '<tr><td colspan="5" class="vazio">Sem dados neste mês.</td></tr>';
+
+    $('dashAgentes').innerHTML = ordA.length ? '<table><thead><tr><th>Agente</th><th style="width:90px">Chamados</th><th>Participação</th></tr></thead><tbody>' +
+      ordA.map(id => {
+        const pct = Math.round(porAgente[id] / regs.length * 100);
+        return '<tr><td>' + esc(nomeAg(id)) + '</td><td>' + porAgente[id] + '</td>' +
+          '<td><div style="background:var(--g14);border-radius:6px;height:8px;overflow:hidden"><div style="width:' + pct + '%;background:var(--magic);height:100%"></div></div>' + pct + '%</td></tr>';
+      }).join('') + '</tbody></table>' : '<div class="vazio">Sem uso neste mês.</div>';
+  } catch (e) { toast('Erro no dashboard: ' + (e.message || e), 'er'); }
 }
 
-/* ---- start ---- */
-fillCfg();
-loadAll();
+/* ══════════ LEITORES DAS OUTRAS MEMÓRIAS (restaurados da 1ª versão, agora no banco real) ══════════ */
+async function renderTelemetria(){
+  var box=document.getElementById('telFeed'); if(!box)return; box.innerHTML='<div class="spin"></div>';
+  try{
+    var node=(await D.ler('ia/telemetria/'+mesAtual()))||{};
+    var arr=Object.keys(node).map(function(k){var v=node[k]||{};v._id=k;return v;}).filter(function(r){return r&&(r.ts||r.agente||r.modelo);});
+    arr.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+    if(!arr.length){ box.innerHTML='<div class="vazio">Sem telemetria neste mês ainda.</div>'; return; }
+    var cam=Number(S.cfg.cambio)||5.5;
+    box.innerHTML='<div class="feed">'+arr.slice(0,80).map(function(t){
+      var brl=(t.custoBRL!=null)?t.custoBRL:((t.custoUSD||0)*cam);
+      var cor=t.escalado?'var(--warn)':(t.roteado?'var(--glow)':'var(--ok)');
+      return '<div class="frow"><span class="sdot" style="background:'+cor+'"></span>'+
+        '<span style="flex:1;min-width:0"><span class="who">'+esc(t.agente||'—')+'</span> <span class="meta">· '+esc(t.sistema||'')+' · '+esc((t.provedor?t.provedor+' ':'')+(t.modelo||t.tier||''))+'</span></span>'+
+        ((t.latenciaMs!=null)?'<span class="tag">'+Math.round(t.latenciaMs)+' ms</span>':'')+
+        '<span class="tag">R$ '+(Number(brl)||0).toFixed(2)+'</span>'+
+        ((t.kosDocs||t.kos)?'<span class="tag">KOS '+(t.kosDocs||t.kos)+'</span>':'')+
+        (t.escalado?'<span class="tag"><i class="ic ic-bolt"></i></span>':'')+'</div>';
+    }).join('')+'</div>';
+  }catch(e){ box.innerHTML='<div class="vazio">Não foi possível ler a telemetria'+(S.email==='preview'?' — sem login, o banco pode bloquear a leitura':'')+'.</div>'; }
+}
+async function renderMemoria(){
+  var box=document.getElementById('memFeed'); if(!box)return; box.innerHTML='<div class="spin"></div>';
+  try{
+    var raiz=(await D.ler('sessoes'))||{};
+    var dias=Object.keys(raiz).sort().reverse().slice(0,10), arr=[];
+    dias.forEach(function(d){ var s=raiz[d]||{}; Object.keys(s).forEach(function(id){ var x=s[id]||{}; x._dia=d; arr.push(x); }); });
+    if(!arr.length){ box.innerHTML='<div class="vazio">Nenhuma sessão registrada ainda.</div>'; return; }
+    arr.sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+    box.innerHTML='<div class="feed">'+arr.slice(0,80).map(function(s){
+      var venda=(s.desfecho==='venda'||s.desfecho==='ganho'), perda=(s.desfecho==='perdido'||s.desfecho==='perda');
+      var cor=venda?'var(--ok)':(perda?'var(--bad)':'var(--glow)');
+      var dest=(s.demografia&&s.demografia.destino)||s.destino||'';
+      return '<div class="frow"><span class="sdot" style="background:'+cor+'"></span>'+
+        '<span style="flex:1;min-width:0"><span class="who">'+esc(s.desfecho||'em aberto')+'</span> <span class="meta">· '+esc(s.sistema||'')+(dest?' · '+esc(dest):'')+'</span></span>'+
+        (s.valor?'<span class="tag">R$ '+(Number(s.valor)||0).toFixed(2)+'</span>':'')+
+        (s.diasAteFechar!=null?'<span class="tag">'+s.diasAteFechar+'d</span>':'')+
+        (s.msgs?'<span class="tag">'+s.msgs+' msg</span>':'')+
+        '<span class="meta">'+esc(s._dia)+'</span></div>';
+    }).join('')+'</div>';
+  }catch(e){ box.innerHTML='<div class="vazio">Não foi possível ler as sessões'+(S.email==='preview'?' — sem login, o banco pode bloquear a leitura':'')+'.</div>'; }
+}
+async function renderConfianca(){
+  var box=document.getElementById('confTable'); if(!box)return; box.innerHTML='<div class="spin"></div>';
+  try{
+    var raiz=(await D.ler('sessoes'))||{}, dest={};
+    Object.keys(raiz).forEach(function(d){ var s=raiz[d]||{}; Object.keys(s).forEach(function(id){ var x=s[id]||{}; var dt=(x.demografia&&x.demografia.destino)||x.destino; if(!dt)return; dest[dt]=dest[dt]||{n:0,v:0}; dest[dt].n++; if(x.desfecho==='venda'||x.desfecho==='ganho')dest[dt].v++; }); });
+    var arr=Object.keys(dest).map(function(d){return {destino:d,n:dest[d].n,taxa:dest[d].n?dest[d].v/dest[d].n:0};}).sort(function(a,b){return b.n-a.n;});
+    if(!arr.length){ box.innerHTML='<div class="vazio">As sessões ainda não trazem destino — quando os episódios incluírem destino, a confiança aparece aqui.</div>'; return; }
+    box.innerHTML='<table><thead><tr><th>Destino</th><th style="text-align:right;width:90px">Amostra</th><th style="width:210px">Taxa de fechamento</th><th style="width:170px">Confiança</th></tr></thead><tbody>'+
+      arr.map(function(a){ var pct=Math.round(a.taxa*100), baixa=a.n<8;
+        return '<tr><td><b>'+esc(a.destino)+'</b></td><td style="text-align:right">'+a.n+'</td>'+
+          '<td><div class="linha" style="gap:10px;justify-content:flex-end"><span>'+pct+'%</span><div class="bar" style="width:110px;flex:0 0 auto"><i style="width:'+pct+'%"></i></div></div></td>'+
+          '<td>'+(baixa?'<span class="pill al">baixa (amostra pequena)</span>':'<span class="pill ok">ok</span>')+'</td></tr>';
+      }).join('')+'</tbody></table>';
+  }catch(e){ box.innerHTML='<div class="vazio">Não foi possível calcular a confiança'+(S.email==='preview'?' — sem login, o banco pode bloquear a leitura':'')+'.</div>'; }
+}
+document.querySelectorAll('.side nav button').forEach(function(b){
+  b.addEventListener('click', function(){
+    if(b.dataset.p==='memoria'){ renderMemoria(); renderConfianca(); }
+    if(b.dataset.p==='dash' && window.PAINEL){ PAINEL.init(); }
+  });
+});
+(function(){ var a=document.getElementById('telRefresh'); if(a)a.onclick=renderTelemetria;
+  var b=document.getElementById('memRefresh'); if(b)b.onclick=renderMemoria;
+  var c=document.getElementById('confRefresh'); if(c)c.onclick=renderConfianca; })();
+
+/* ==================== PAINEL DE WIDGETS (Dashboard) ==================== */
+(function(){
+  var CAT=[
+    {g:'Telemetria (mês)', key:'chamados', title:'Chamados no mês', source:'telemetria', metric:'count', viz:'number', w:1,h:1, icon:'bolt'},
+    {g:'Telemetria (mês)', key:'custoBRL', title:'Custo do mês (R$)', source:'telemetria', metric:'sum', field:'custoUSD', scale:'cambio', unit:'R$', viz:'number', w:1,h:1, icon:'chart'},
+    {g:'Telemetria (mês)', key:'custoMedio', title:'Custo médio/resposta', source:'telemetria', metric:'avg', field:'custoUSD', scale:'cambio', unit:'R$', viz:'number', w:1,h:1, icon:'chart'},
+    {g:'Telemetria (mês)', key:'latencia', title:'Latência média', source:'telemetria', metric:'avg', field:'latenciaMs', unit:'ms', viz:'number', w:1,h:1, icon:'trend'},
+    {g:'Telemetria (mês)', key:'escalados', title:'% escalados p/ reforço', source:'telemetria', metric:'rate', cond:{field:'escalado', val:true}, unit:'%', viz:'number', w:1,h:1, icon:'bolt'},
+    {g:'Telemetria (mês)', key:'agenteMais', title:'Agente mais usado', source:'telemetria', metric:'topLabel', groupBy:'agente', viz:'number', w:1,h:1, icon:'ai'},
+    {g:'Telemetria (mês)', key:'agenteMenos', title:'Agente menos usado', source:'telemetria', metric:'bottomLabel', groupBy:'agente', viz:'number', w:1,h:1, icon:'ai'},
+    {g:'Telemetria (mês)', key:'modeloTop', title:'Modelo mais constante', source:'telemetria', metric:'topLabel', groupBy:'modelo', viz:'number', w:1,h:1, icon:'refresh'},
+    {g:'Telemetria (mês)', key:'porAgente', title:'Chamados por agente', source:'telemetria', metric:'group', groupBy:'agente', viz:'bar', w:2,h:2, icon:'chart'},
+    {g:'Telemetria (mês)', key:'porModelo', title:'Chamados por modelo', source:'telemetria', metric:'group', groupBy:'modelo', viz:'bar', w:2,h:1, icon:'chart'},
+    {g:'Telemetria (mês)', key:'porSistema', title:'Chamados por sistema', source:'telemetria', metric:'group', groupBy:'sistema', viz:'bar', w:2,h:1, icon:'plug'},
+    {g:'Sessões (30 dias)', key:'sessoes', title:'Sessões (30 dias)', source:'sessoes', metric:'count', viz:'number', w:1,h:1, icon:'inbox'},
+    {g:'Sessões (30 dias)', key:'vendas', title:'Vendas (30 dias)', source:'sessoes', metric:'count', filter:{field:'desfecho', val:'venda'}, viz:'number', w:1,h:1, icon:'target'},
+    {g:'Sessões (30 dias)', key:'conversao', title:'Taxa de conversão', source:'sessoes', metric:'rate', cond:{field:'desfecho', val:'venda'}, unit:'%', viz:'number', w:1,h:1, icon:'trend'},
+    {g:'Sessões (30 dias)', key:'ticket', title:'Ticket médio', source:'sessoes', metric:'avg', field:'valor', unit:'R$', viz:'number', w:1,h:1, icon:'chart'},
+    {g:'Sessões (30 dias)', key:'dias', title:'Dias até fechar (média)', source:'sessoes', metric:'avg', field:'diasAteFechar', viz:'number', w:1,h:1, icon:'cal'},
+    {g:'Sessões (30 dias)', key:'msgs', title:'Mensagens registradas', source:'sessoes', metric:'sum', field:'msgs', viz:'number', w:1,h:1, icon:'chat'},
+    {g:'Sessões (30 dias)', key:'porDestino', title:'Sessões por destino', source:'sessoes', metric:'group', groupBy:'destino', viz:'bar', w:2,h:1, icon:'globe'},
+    {g:'Sessões (30 dias)', key:'vendasDestino', title:'Vendas por destino', source:'sessoes', metric:'group', groupBy:'destino', filter:{field:'desfecho', val:'venda'}, viz:'bar', w:2,h:1, icon:'globe'},
+    {g:'Memória & agentes', key:'kosTotal', title:'KOS (longo prazo)', source:'memoriaKos', metric:'kos', viz:'number', w:1,h:1, icon:'ai'},
+    {g:'Memória & agentes', key:'mosVivos', title:'MOS vivos', source:'memoriaKos', metric:'mosVivos', viz:'number', w:1,h:1, icon:'layers'},
+    {g:'Memória & agentes', key:'maduras', title:'Memórias maduras', source:'memoriaKos', metric:'maduras', viz:'number', w:1,h:1, icon:'star'},
+    {g:'Memória & agentes', key:'agentes', title:'Agentes ativos', source:'agentes', metric:'count', viz:'number', w:1,h:1, icon:'ai'},
+    {g:'Carteira', key:'saldo', title:'Saldo das carteiras', source:'config', metric:'saldo', unit:'R$', viz:'number', w:1,h:1, icon:'key'},
+    {g:'Carteira', key:'cambio', title:'Câmbio US$ para R$', source:'config', metric:'cambio', unit:'R$', viz:'number', w:1,h:1, icon:'refresh'},
+    {g:'Painéis do dashboard', key:'empresas', title:'Empresas', type:'panel', panel:'empresas', w:4,h:2, icon:'plug'},
+    {g:'Painéis do dashboard', key:'absorvido', title:'O que a TurIA absorveu', type:'panel', panel:'absorvido', w:2,h:1, icon:'inbox'},
+    {g:'Painéis do dashboard', key:'usoAgente', title:'Uso por agente', type:'panel', panel:'usoAgente', w:2,h:2, icon:'chart'},
+    {g:'Painéis do dashboard', key:'resumo', title:'Resumo do mês', type:'panel', panel:'resumo', w:4,h:2, icon:'ai'},
+    {g:'Painéis do dashboard', key:'telemetria', title:'Telemetria — chamadas recentes', type:'panel', panel:'telemetria', w:2,h:2, icon:'bolt'}
+  ];
+  var W=[], editando=false, dados=null, iniciado=false;
+  var G=function(id){return document.getElementById(id);};
+
+  function padrao(){ return ['chamados','custoBRL','escalados','agenteMais','modeloTop','porAgente','empresas','absorvido','usoAgente','resumo','telemetria'].map(mk); }
+  function mk(key){ var c=CAT.find(function(x){return x.key===key;})||CAT[0]; var w=JSON.parse(JSON.stringify(c)); w.id='w_'+Math.random().toString(36).slice(2,8); return w; }
+
+  async function carregarPainel(){ try{ var p=await D.ler('ia/config/painel'); W=(Array.isArray(p)&&p.length)?p:padrao(); }catch(e){ W=padrao(); } }
+  function salvar(){ try{ D.gravar('ia/config/painel', W); }catch(e){} }
+
+  async function carregarDados(){
+    var out={cambio:Number(S.cfg.cambio)||5.5};
+    try{ var t=(await D.ler('ia/telemetria/'+mesAtual()))||{}; out.tel=Object.keys(t).map(function(k){return t[k];}).filter(function(r){return r&&(r.ts||r.agente||r.modelo);}); }catch(e){ out.tel=[]; }
+    try{ var raiz=(await D.ler('sessoes'))||{}; var dias=Object.keys(raiz).sort().reverse().slice(0,30); var ses=[]; dias.forEach(function(d){ var s=raiz[d]||{}; Object.keys(s).forEach(function(k){ var x=s[k]||{}; x.destino=(x.demografia&&x.demografia.destino)||x.destino||'(sem destino)'; ses.push(x); }); }); out.ses=ses; }catch(e){ out.ses=[]; }
+    try{ out.kos=await D.ler('kos_rag/current'); }catch(e){ out.kos=null; }
+    try{ out.mos=(await D.ler('mos/registros'))||{}; }catch(e){ out.mos={}; }
+    dados=out;
+  }
+  function arrFonte(w){ return (w.source==='sessoes')?(dados.ses||[]):(dados.tel||[]); }
+  function passa(r,w){ if(!w.filter||!w.filter.field) return true; return String(r[w.filter.field])===String(w.filter.val); }
+  function nomeAg(id){ return (S.agentes&&S.agentes[id]&&S.agentes[id].nome)||id||'—'; }
+
+  function computar(w){
+    if(!dados) return {kind:'number', value:'—'};
+    if(w.source==='memoriaKos'){
+      if(w.metric==='kos') return {kind:'number', value:(dados.kos&&dados.kos.totalDocs)||0};
+      var vivos=Object.keys(dados.mos).filter(function(k){ return (typeof vivo==='function')?vivo(dados.mos[k],Date.now()):true; });
+      if(w.metric==='mosVivos') return {kind:'number', value:vivos.length};
+      if(w.metric==='maduras') return {kind:'number', value:vivos.filter(function(k){return dados.mos[k].maduro===true;}).length};
+    }
+    if(w.source==='agentes') return {kind:'number', value:Object.keys(S.agentes||{}).length};
+    if(w.source==='config'){
+      if(w.metric==='cambio') return {kind:'number', value:fmt(dados.cambio,'R$')};
+      var sis=S.cfg.sistemas||{}; var tot=Object.keys(sis).reduce(function(a,k){return a+(Number(sis[k].saldoBRL)||0);},0);
+      return {kind:'number', value:fmt(tot,'R$')};
+    }
+    var base=arrFonte(w).filter(function(r){return passa(r,w);});
+    if(w.metric==='topLabel'||w.metric==='bottomLabel'){
+      var gg={}; base.forEach(function(r){ var k=r[w.groupBy]; if(k===undefined||k===null||k==='') k='—'; gg[k]=(gg[k]||0)+1; });
+      var ks=Object.keys(gg).sort(function(a,b){return gg[b]-gg[a];});
+      var pick=(w.metric==='topLabel')?ks[0]:ks[ks.length-1];
+      if(w.groupBy==='agente'&&pick) pick=nomeAg(pick);
+      return {kind:'number', value:pick||'—', small:true};
+    }
+    if(w.viz==='bar'||w.metric==='group'){
+      var g={}; base.forEach(function(r){ var k=r[w.groupBy]; if(k===undefined||k===null||k==='') k='—'; if(w.field&&w.agg==='sum') g[k]=(g[k]||0)+(Number(r[w.field])||0); else g[k]=(g[k]||0)+1; });
+      var rows=Object.keys(g).map(function(k){return {label:String(k), value:g[k]};}).sort(function(a,b){return b.value-a.value;}).slice(0,6);
+      return {kind:'bar', rows:rows};
+    }
+    var v=0;
+    if(w.metric==='count') v=base.length;
+    else if(w.metric==='sum') v=base.reduce(function(a,r){return a+(Number(r[w.field])||0);},0);
+    else if(w.metric==='avg'){ var vals=base.map(function(r){return Number(r[w.field]);}).filter(function(x){return !isNaN(x);}); v=vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:0; }
+    else if(w.metric==='rate'){ var cd=w.cond||{}; var c=base.filter(function(r){return String(r[cd.field])===String(cd.val);}).length; v=base.length?c/base.length*100:0; }
+    if(w.scale==='cambio') v=v*dados.cambio;
+    return {kind:'number', value:fmt(v,w.unit)};
+  }
+  function fmt(v,u){ v=Number(v)||0; if(u==='R$') return 'R$ '+v.toFixed(2); if(u==='US$') return 'US$ '+v.toFixed(4); if(u==='%') return Math.round(v)+'%'; if(u==='ms') return Math.round(v)+' ms'; return Number.isInteger(v)?String(v):v.toFixed(1); }
+  function tam(w){ return (w.w||1)+'x'+(w.h||1); }
+
+  // ---- painéis (reconstruídos a partir do cache; alguns reaproveitam funções existentes) ----
+  function panelEmpresas(){
+    var cam=dados.cambio, tel=dados.tel||[]; var porSis={};
+    tel.forEach(function(r){ var s=r.sistema||'—'; if(!porSis[s]) porSis[s]={n:0,usd:0}; porSis[s].n++; porSis[s].usd+=r.custoUSD||0; });
+    var sis=S.cfg.sistemas||{}; var ids=Array.from(new Set(Object.keys(sis).concat(Object.keys(porSis))));
+    if(!ids.length) return '<div class="vazio">Sem dados neste mês.</div>';
+    return '<table><thead><tr><th>Empresa</th><th>Chamados</th><th>Custo</th><th>Reforço</th><th>Saldo</th></tr></thead><tbody>'+
+      ids.map(function(id){ var s=sis[id]||{}, u=porSis[id]||{n:0,usd:0}; var tem=(Number(s.saldoBRL)||0)>0;
+        return '<tr><td><b>'+esc(s.nome||id)+'</b><br><span class="pill mono">'+esc(id)+'</span></td><td>'+u.n+'</td><td>R$ '+(u.usd*cam).toFixed(2)+'</td><td><span class="pill '+(tem?'ok':'')+'">'+(tem?'sim':'não')+'</span></td><td>R$ '+(Number(s.saldoBRL)||0).toFixed(2)+'</td></tr>';
+      }).join('')+'</tbody></table>';
+  }
+  function panelUsoAgente(){
+    var tel=dados.tel||[], por={}; tel.forEach(function(r){ var a=r.agente||'—'; por[a]=(por[a]||0)+1; });
+    var ord=Object.keys(por).sort(function(a,b){return por[b]-por[a];}), total=tel.length;
+    if(!ord.length) return '<div class="vazio">Sem uso neste mês.</div>';
+    return '<table><thead><tr><th>Agente</th><th>Chamados</th><th>Participação</th></tr></thead><tbody>'+
+      ord.map(function(id){ var pct=total?Math.round(por[id]/total*100):0; return '<tr><td>'+esc(nomeAg(id))+'</td><td>'+por[id]+'</td><td><div class="bar" style="margin-bottom:3px"><i style="width:'+pct+'%"></i></div>'+pct+'%</td></tr>'; }).join('')+'</tbody></table>';
+  }
+  function panelBody(w){
+    if(w.panel==='empresas') return panelEmpresas();
+    if(w.panel==='usoAgente') return panelUsoAgente();
+    if(w.panel==='absorvido') return '<div class="kpi" id="absKpi" style="margin:0"><div class="spin"></div></div>';
+    if(w.panel==='telemetria') return '<div class="linha" style="justify-content:flex-end"><button class="btn f mini fix" id="telRefresh">Atualizar</button></div><div id="telFeed" style="margin-top:8px"><div class="spin"></div></div>';
+    if(w.panel==='resumo') return '<div class="linha" style="justify-content:flex-end;gap:8px"><select id="semTipo" style="flex:0 0 110px"><option value="mensal">Mensal</option><option value="anual">Anual</option></select><select id="semSel" style="flex:0 0 150px"></select></div><div id="semConteudo" style="margin-top:8px"><div class="spin"></div></div>';
+    return '<div class="vazio">—</div>';
+  }
+  function fillPanels(){
+    try{
+      if(G('absKpi') && typeof renderAbsorvido==='function') renderAbsorvido();
+      if(G('telFeed') && typeof renderTelemetria==='function'){ renderTelemetria(); var tr=G('telRefresh'); if(tr) tr.onclick=renderTelemetria; }
+      if(G('semConteudo')){ if(typeof renderResumos==='function') renderResumos(); var st=G('semTipo'), ss=G('semSel'); if(st) st.onchange=function(){ if(typeof renderResumos==='function') renderResumos(); }; if(ss) ss.onchange=function(){ if(typeof mostrarResumo==='function') mostrarResumo(); }; }
+    }catch(e){}
+  }
+
+  function shell(w, inner, extra){
+    var ctl='<div class="wctl"><select class="wsize" title="Tamanho">'+
+      [['1x1','P'],['2x1','M'],['2x2','G'],['4x1','Largo']].map(function(o){return '<option value="'+o[0]+'"'+(tam(w)===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+
+      '</select><button class="del" title="Remover">×</button></div>';
+    return '<div class="wgt '+(extra||'')+'" draggable="'+(editando?'true':'false')+'" data-id="'+w.id+'" style="grid-column:span '+(w.w||1)+';grid-row:span '+(w.h||1)+'">'+ctl+'<div class="wt"><i class="ic ic-'+(w.icon||'chart')+'"></i> '+esc(w.title)+'</div>'+inner+'</div>';
+  }
+  function pintar(){
+    var grid=G('pnlGrid'); if(!grid) return;
+    grid.className='pnl-grid'+(editando?' editando':'');
+    if(!W.length){ grid.innerHTML='<div class="vazio" style="grid-column:1/-1">Dashboard vazio. Clique em <b>+ Indicador</b> para montar.</div>'; return; }
+    grid.innerHTML=W.map(function(w){
+      if(w.type==='panel') return shell(w, '<div class="wbody">'+panelBody(w)+'</div>', 'panel');
+      var r=computar(w);
+      if(r.kind==='bar'){
+        var mx=Math.max.apply(null,r.rows.map(function(x){return x.value;}).concat([1]));
+        var bars='<div class="wbars">'+(r.rows.length?r.rows.map(function(x){var pct=Math.round(x.value/mx*100);return '<div class="wrow"><span class="lb">'+esc(x.label)+'</span><b>'+x.value+'</b><div class="bar"><i style="width:'+pct+'%"></i></div></div>';}).join(''):'<div class="wsub">sem dados no período</div>')+'</div>';
+        return shell(w, bars, 'bar');
+      }
+      var body='<div class="wv'+(r.small?' sm':'')+'">'+esc(String(r.value))+'</div>'+(w.sub?'<div class="wsub">'+esc(w.sub)+'</div>':'');
+      return shell(w, body, '');
+    }).join('');
+    fillPanels();
+  }
+  async function render(){ var grid=G('pnlGrid'); if(grid&&!grid.querySelector('.wgt')) grid.innerHTML='<div class="spin"></div>'; await carregarDados(); pintar(); }
+
+  function bindGrid(){
+    var grid=G('pnlGrid'); if(!grid||grid._bound) return; grid._bound=true; var dragId=null;
+    grid.addEventListener('dragstart', function(e){ var el=e.target.closest('.wgt'); if(!el||!editando){ e.preventDefault(); return; } dragId=el.dataset.id; el.classList.add('dragging'); });
+    grid.addEventListener('dragend', function(){ dragId=null; grid.querySelectorAll('.dragging,.over').forEach(function(x){x.classList.remove('dragging');x.classList.remove('over');}); });
+    grid.addEventListener('dragover', function(e){ if(!editando||!dragId) return; e.preventDefault(); var el=e.target.closest('.wgt'); grid.querySelectorAll('.over').forEach(function(x){x.classList.remove('over');}); if(el&&el.dataset.id!==dragId) el.classList.add('over'); });
+    grid.addEventListener('drop', function(e){ if(!editando||!dragId) return; e.preventDefault(); var el=e.target.closest('.wgt'), dg=grid.querySelector('.wgt[data-id="'+dragId+'"]'); if(!el||!dg||el===dg) return; grid.insertBefore(dg, el); var ord=Array.from(grid.querySelectorAll('.wgt')).map(function(x){return x.dataset.id;}); W.sort(function(a,b){return ord.indexOf(a.id)-ord.indexOf(b.id);}); salvar(); });
+    grid.addEventListener('click', function(e){ if(!e.target.classList.contains('del')) return; var el=e.target.closest('.wgt'); var i=W.findIndex(function(x){return x.id===el.dataset.id;}); if(i>=0){ W.splice(i,1); el.remove(); salvar(); } });
+    grid.addEventListener('change', function(e){ if(!e.target.classList.contains('wsize')) return; var el=e.target.closest('.wgt'); var w=W.find(function(x){return x.id===el.dataset.id;}); if(!w) return; var p=e.target.value.split('x'); w.w=+p[0]; w.h=+p[1]; el.style.gridColumn='span '+w.w; el.style.gridRow='span '+w.h; salvar(); });
+  }
+
+  function abrir(){ pintarCat(); G('pnlModal').classList.add('on'); aba('cat'); }
+  function fechar(){ G('pnlModal').classList.remove('on'); }
+  function aba(t){ [['cat','pnlTabCat'],['custom','pnlTabCustom'],['ia','pnlTabIa']].forEach(function(p){ G(p[1]).style.display=(p[0]===t)?'block':'none'; }); document.querySelectorAll('#pnlModal .pnl-tabs button').forEach(function(b){ b.classList.toggle('on', b.dataset.tab===t); }); }
+  function pintarCat(){ var gr={}; CAT.forEach(function(c){ (gr[c.g]=gr[c.g]||[]).push(c); }); var html=''; Object.keys(gr).forEach(function(g){ html+='<div class="pnl-grp">'+esc(g)+'</div><div class="pnl-cat">'+gr[g].map(function(c){ var jah=(c.type==='panel'&&W.some(function(w){return w.panel===c.panel;})); return '<button class="it" data-key="'+c.key+'"'+(jah?' style="opacity:.5"':'')+'><b>'+esc(c.title)+'</b><span>'+(c.type==='panel'?(jah?'já no dashboard':'painel'):(c.viz==='bar'?'gráfico de barras':'indicador'))+'</span></button>'; }).join('')+'</div>'; }); G('pnlTabCat').innerHTML=html; }
+  function pintarCustom(){ G('pnlTabCustom').innerHTML=
+    '<label>Título</label><input id="cwTit" placeholder="Ex.: Conversão do site">'+
+    '<div class="linha"><div><label>Fonte</label><select id="cwSrc"><option value="telemetria">Telemetria (mês)</option><option value="sessoes">Sessões (30 dias)</option><option value="memoriaKos">Memória curada</option><option value="agentes">Agentes</option><option value="config">Carteira</option></select></div>'+
+    '<div><label>Cálculo</label><select id="cwMet"><option value="count">Contagem</option><option value="sum">Soma</option><option value="avg">Média</option><option value="rate">Taxa (%)</option><option value="group">Agrupar (barras)</option></select></div></div>'+
+    '<div class="linha"><div><label>Campo (soma/média)</label><input id="cwField" class="mono" placeholder="custoUSD · valor · msgs · latenciaMs · diasAteFechar"></div>'+
+    '<div><label>Agrupar por (barras)</label><input id="cwGroup" class="mono" placeholder="agente · modelo · sistema · destino · desfecho"></div></div>'+
+    '<div class="linha"><div><label>Filtro — campo</label><input id="cwFf" class="mono" placeholder="desfecho · escalado · sistema"></div>'+
+    '<div><label>Filtro — valor</label><input id="cwFv" class="mono" placeholder="venda · true · site"></div></div>'+
+    '<div class="linha"><div><label>Unidade</label><select id="cwUnit"><option value="">nenhuma</option><option value="R$">R$</option><option value="%">%</option><option value="ms">ms</option><option value="US$">US$</option></select></div>'+
+    '<div><label>× câmbio (US$→R$)</label><select id="cwScale"><option value="">não</option><option value="cambio">sim</option></select></div>'+
+    '<div><label>Tamanho</label><select id="cwSize"><option value="1x1">P</option><option value="2x1">M</option><option value="2x2">G</option><option value="4x1">Largo</option></select></div></div>'+
+    '<div class="linha" style="justify-content:flex-end;margin-top:12px"><button class="btn fix" id="cwAdd">Adicionar ao painel</button></div>'; }
+  function pintarIa(){ G('pnlTabIa').innerHTML=
+    '<p class="dica">Descreva em português o indicador que você quer — a TurIA transforma sua descrição nos parâmetros do widget.<br>Ex.: <i>"taxa de conversão só do sistema site"</i> · <i>"custo médio por resposta em reais"</i> · <i>"vendas por destino em barras"</i>.</p>'+
+    '<textarea id="iaDesc" style="min-height:92px" placeholder="Descreva o indicador que você quer..."></textarea>'+
+    '<div class="linha" style="justify-content:space-between;margin-top:10px"><span class="pill" id="iaMsg">a TurIA monta os parâmetros pra você</span><button class="btn fix" id="iaGo">Criar com a TurIA</button></div>'; }
+
+  function addWidget(w){ w.id='w_'+Math.random().toString(36).slice(2,8); W.push(w); salvar(); fechar(); pintar(); }
+  function limpar(o){
+    var srcs=['telemetria','sessoes','memoriaKos','agentes','config'], mets=['count','sum','avg','rate','group'];
+    var w={ title:String(o.title||'Indicador').slice(0,48), source:srcs.indexOf(o.source)>=0?o.source:'telemetria', metric:mets.indexOf(o.metric)>=0?o.metric:'count', viz:(o.viz==='bar'||o.metric==='group')?'bar':'number', icon:(o.viz==='bar'||o.metric==='group')?'chart':'trend' };
+    if(o.field) w.field=String(o.field).trim(); if(o.groupBy) w.groupBy=String(o.groupBy).trim();
+    if(o.filter&&o.filter.field) w.filter={field:String(o.filter.field).trim(), val:o.filter.val};
+    if(o.cond&&o.cond.field) w.cond={field:String(o.cond.field).trim(), val:o.cond.val};
+    if(o.unit) w.unit=String(o.unit); if(o.scale==='cambio') w.scale='cambio';
+    var ww=parseInt(o.w)||(w.viz==='bar'?2:1), hh=parseInt(o.h)||(w.viz==='bar'?1:1);
+    w.w=Math.max(1,Math.min(4,ww)); w.h=Math.max(1,Math.min(2,hh)); return w;
+  }
+  async function criarIA(desc){
+    var url=S.cfg.funcUrl||'', tok=S.cfg.consoleToken||''; if(!url||!tok) throw new Error('sem-gateway');
+    var esquema='Voce gera a configuracao de UM widget de painel. Responda APENAS um JSON valido, sem markdown, sem texto extra. Formato: {"title":"","source":"telemetria|sessoes|memoriaKos|agentes|config","metric":"count|sum|avg|rate|group","field":"custoUSD|latenciaMs|valor|msgs|diasAteFechar","filter":{"field":"","val":""},"cond":{"field":"","val":""},"groupBy":"agente|modelo|sistema|destino|desfecho","unit":"R$|%|ms|US$","scale":"cambio","viz":"number|bar","w":1,"h":1}. Fontes: telemetria(campos: agente,modelo,sistema,custoUSD,latenciaMs,escalado). sessoes(campos: desfecho[venda/perdido],valor,msgs,diasAteFechar,destino,sistema). Regras: para porcentagem use metric "rate" e cond. Para barras use viz "bar" e groupBy. Para reais use scale "cambio" e unit "R$". Nao invente campos fora da lista.';
+    var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({sistema:'console',agente:'turia',sessao:'painel_'+Date.now(),mensagens:[{papel:'user',texto:esquema+'\nDescricao do usuario: "'+desc+'"'}]})});
+    var j=await r.json(); if(!j.ok) throw new Error(j.erro||'erro');
+    var txt=String(j.texto||'').replace(/```json/g,'').replace(/```/g,'').trim();
+    var m=txt.match(/\{[\s\S]*\}/); if(!m) throw new Error('sem-json');
+    return limpar(JSON.parse(m[0]));
+  }
+
+  function bindModal(){
+    var mod=G('pnlModal'); if(!mod||mod._bound) return; mod._bound=true;
+    G('pnlClose').onclick=fechar;
+    mod.addEventListener('click', function(e){ if(e.target===mod) fechar(); });
+    document.querySelectorAll('#pnlModal .pnl-tabs button').forEach(function(b){ b.onclick=function(){ var t=b.dataset.tab; if(t==='custom')pintarCustom(); if(t==='ia')pintarIa(); if(t==='cat')pintarCat(); aba(t); }; });
+    G('pnlTabCat').addEventListener('click', function(e){ var it=e.target.closest('.it'); if(!it) return; var c=CAT.find(function(x){return x.key===it.dataset.key;}); if(c&&c.type==='panel'&&W.some(function(w){return w.panel===c.panel;})){ toast('Esse painel já está no dashboard.'); return; } addWidget(mk(it.dataset.key)); });
+    G('pnlTabCustom').addEventListener('click', function(e){ if(e.target.id!=='cwAdd') return;
+      var o={ title:G('cwTit').value, source:G('cwSrc').value, metric:G('cwMet').value, field:G('cwField').value, groupBy:G('cwGroup').value, unit:G('cwUnit').value, scale:G('cwScale').value };
+      var ff=G('cwFf').value.trim(), fv=G('cwFv').value.trim(); if(ff){ var vv=(fv==='true')?true:((fv==='false')?false:fv); if(o.metric==='rate') o.cond={field:ff,val:vv}; else o.filter={field:ff,val:vv}; }
+      var p=G('cwSize').value.split('x'); o.w=+p[0]; o.h=+p[1]; addWidget(limpar(o)); });
+    G('pnlTabIa').addEventListener('click', async function(e){ if(e.target.id!=='iaGo') return;
+      var desc=(G('iaDesc').value||'').trim(); if(!desc){ G('iaMsg').textContent='Escreva uma descrição primeiro.'; return; }
+      e.target.disabled=true; G('iaMsg').textContent='A TurIA está montando o indicador...';
+      try{ var w=await criarIA(desc); addWidget(w); toast('Indicador criado pela TurIA.'); }
+      catch(err){ var m=(err&&err.message==='sem-gateway')?'Sem conexão com a TurIA (configure em Cérebro). Abri o modo manual — revise e adicione.':'Não consegui interpretar. Abri o modo manual — ajuste os campos.'; if(G('iaMsg'))G('iaMsg').textContent=m; pintarCustom(); aba('custom'); if(G('cwTit'))G('cwTit').value=desc.slice(0,48); }
+      finally{ e.target.disabled=false; } });
+  }
+  function bindBar(){
+    var be=G('pnlEdit'); if(be&&!be._b){ be._b=1; be.onclick=function(){ editando=!editando; be.textContent=editando?'Concluir edição':'Editar painel'; be.classList.toggle('f',!editando); var grid=G('pnlGrid'); if(grid){ grid.classList.toggle('editando',editando); grid.querySelectorAll('.wgt').forEach(function(x){ x.setAttribute('draggable', editando?'true':'false'); }); } }; }
+    var ba=G('pnlAdd'); if(ba&&!ba._b){ ba._b=1; ba.onclick=abrir; }
+  }
+
+  window.PAINEL={ init: async function(){ if(!G('pnlGrid')) return; bindBar(); bindGrid(); bindModal(); if(!iniciado){ await carregarPainel(); iniciado=true; } await render(); } };
+})();
+
+/* -- alternância de tema claro/escuro -- */
+(function(){
+  var root=document.documentElement, btn=document.getElementById('temaBtn'), lbl=document.getElementById('temaLbl');
+  function apply(t){ if(t==='light'){ root.setAttribute('data-theme','light'); if(lbl)lbl.textContent='Tema escuro'; } else { root.removeAttribute('data-theme'); if(lbl)lbl.textContent='Tema claro'; } }
+  var saved='dark'; try{ saved=localStorage.getItem('turia_tema')||'dark'; }catch(e){}
+  apply(saved);
+  if(btn) btn.onclick=function(){ var novo=(root.getAttribute('data-theme')==='light')?'dark':'light'; apply(novo); try{ localStorage.setItem('turia_tema',novo); }catch(e){} };
+})();
+
+/* -- barra lateral no mobile (nao altera nenhuma logica acima) -- */
+(function(){
+  var side=document.getElementById('side'), scrim=document.getElementById('scrim'), burger=document.getElementById('burger');
+  function toggle(open){ if(!side)return; side.classList.toggle('open',open); if(scrim)scrim.classList.toggle('on',open); }
+  if(burger) burger.onclick=function(){ toggle(true); };
+  if(scrim) scrim.onclick=function(){ toggle(false); };
+  document.querySelectorAll('.side nav button').forEach(function(b){ b.addEventListener('click',function(){ toggle(false); }); });
+})();
+
 </script>
 </body>
 </html>
