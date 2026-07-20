@@ -155,6 +155,10 @@ label{display:block;font-size:11px;font-weight:800;color:var(--ink-3);text-trans
 input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--g09);color:var(--ink)}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--glow);box-shadow:var(--ring)}
 textarea{min-height:90px;resize:vertical;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.5}
+.aglista{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 2px}
+.agitem{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--g09);color:var(--ink-2);font-weight:700;font-size:13px;cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}
+.agitem:hover{background:var(--g14);color:var(--ink)}
+.agitem.sel{background:color-mix(in srgb,var(--orange) 18%,transparent);border-color:color-mix(in srgb,var(--orange) 40%,transparent);color:var(--ink)}
 select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path fill='%23888' d='M2 4l4 4 4-4z'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 .btn{background:var(--orange);color:#fff;border:0;padding:10px 15px;border-radius:var(--radius-pill);font-weight:800;cursor:pointer;font-size:13.5px;box-shadow:var(--sh-orange)}
 .btn:hover{filter:brightness(1.07)}
@@ -395,10 +399,12 @@ tbody tr:hover{background:var(--g06)}
   </div>
 
   <div class="card">
-    <div class="linha">
-      <select id="agSel"></select>
+    <div class="linha" style="justify-content:space-between;align-items:center">
+      <label style="margin:0">Agentes — clique num para editar</label>
       <button class="btn f mini fix" id="agNovo">+ Novo agente</button>
     </div>
+    <div id="agLista" class="aglista"></div>
+    <select id="agSel" style="display:none"></select>
     <div class="linha" style="margin-top:10px">
       <div><label>Nome</label><input type="text" id="agNome"></div>
       <div><label>Papel (o roteador usa isto para decidir)</label><input type="text" id="agPapel"></div>
@@ -985,6 +991,9 @@ function renderAgentes() {
   const at = $('agSel').value;
   $('agSel').innerHTML = ids.map(id => '<option value="' + esc(id) + '">' + esc(S.agentes[id].nome || id) + '</option>').join('');
   if (at && S.agentes[at]) $('agSel').value = at;
+  else if (ids.length) $('agSel').value = ids[0];
+  const sel = $('agSel').value;
+  $('agLista').innerHTML = ids.map(id => '<button class="agitem' + (id === sel ? ' sel' : '') + '" data-ag="' + esc(id) + '">' + esc(S.agentes[id].nome || id) + '</button>').join('');
   mostrarAgente();
 }
 function mostrarAgente() {
@@ -996,6 +1005,7 @@ function mostrarAgente() {
   $('agInfo').textContent = 'base · v' + (a.versao || 1);
 }
 $('agSel').onchange = mostrarAgente;
+$('agLista').onclick = e => { const b = e.target.closest('[data-ag]'); if (b) { $('agSel').value = b.dataset.ag; renderAgentes(); } };
 $('agSalvar').onclick = async () => {
   const id = $('agSel').value; if (!id) return;
   const p = { nome: $('agNome').value.trim(), papel: $('agPapel').value.trim(), modelo: $('agModelo').value.trim(),
